@@ -1,0 +1,12 @@
+{
+  "photobooth": "D:\\apps\\booth\\booth.exe",
+  "obs": "C:\\Program Files\\obs-studio\\bin\\64bit\\obs64.exe",
+  "vscode": "C:\\Users\\%USERNAME%\\AppData\\Local\\Programs\\Microsoft VS Code\\Code.exe",
+  "calculator": "calc.exe",
+  "paint": "mspaint.exe",
+  "wordpad": "write.exe",
+  "explorer": "explorer.exe",
+  "taskmgr": "taskmgr.exe",
+  "cmd": "cmd.exe",
+  "powershell": "powershell.exe"
+}
