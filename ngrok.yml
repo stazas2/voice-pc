@@ -1,12 +1,10 @@
 version: "2"
-authtoken: YOUR_NGROK_TOKEN_HERE
+authtoken: "31v3YFwtzhd0B7y0iytnZfucB6o_6q3pgg3JTSJD1ArKew5f9"
 tunnels:
   voicepc:
     addr: 3000
     proto: http
     schemes:
       - https
-    inspect: true
-    bind_tls: true
 log_level: info
 log: logs/ngrok.log

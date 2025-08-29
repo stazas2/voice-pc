@@ -52,6 +52,60 @@ app.get('/health', (req: Request, res: Response<HealthResponse>) => {
   });
 });
 
+// Webhook GET endpoint for status check
+app.get('/webhook', (req: Request, res: Response) => {
+  res.json({
+    ok: true,
+    service: 'Voice PC Controller',
+    status: 'ready',
+    timestamp: new Date().toISOString()
+  });
+});
+
+// Webhook endpoint for Alice (no token required)
+app.post('/webhook', async (req: Request, res: Response) => {
+  const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || 
+                   req.connection.remoteAddress || 'unknown';
+  
+  logger.info(`Alice webhook from ${clientIp}:`, req.body);
+
+  try {
+    const userText = req.body?.request?.command || '';
+    const sessionId = req.body?.session?.session_id || 'unknown';
+    
+    // Parse user command to API command
+    const commandPayload = parseUserCommand(userText);
+    logger.info(`[${sessionId}] User: "${userText}" -> Command: ${JSON.stringify(commandPayload)}`);
+    
+    // Execute command
+    const result = await windowsCommands.executeCommandRequest(commandPayload);
+    
+    // Generate Alice response
+    const aliceResponse = generateAliceResponse(commandPayload, result);
+    
+    res.json({
+      response: {
+        text: aliceResponse.text,
+        tts: aliceResponse.tts || aliceResponse.text,
+        end_session: false
+      },
+      version: '1.0'
+    });
+    
+  } catch (error: any) {
+    logger.error('Alice webhook error:', error);
+    
+    res.json({
+      response: {
+        text: 'Произошла ошибка при выполнении команды.',
+        tts: 'Произошла ошибка при выполнении команды.',
+        end_session: false
+      },
+      version: '1.0'
+    });
+  }
+});
+
 // Main command endpoint (auth required)
 app.post('/command', security.authMiddleware, async (req: Request, res: Response<ApiResponse>) => {
   const clientIp = (req.headers['x-forwarded-for'] as string)?.split(',')[0] || 
@@ -291,5 +345,103 @@ process.on('SIGINT', () => {
     process.exit(0);
   });
 });
+
+// Command parsing functions for Alice webhook
+function parseUserCommand(userText: string): CommandRequest {
+  const text = userText.toLowerCase().trim();
+  
+  // Command mappings
+  const mappings: Record<string, CommandRequest> = {
+    // Блокнот
+    'запусти блокнот': { command: 'open_notepad' },
+    'открой блокнот': { command: 'open_notepad' },
+    'блокнот': { command: 'open_notepad' },
+    
+    // Браузер с конкретными сайтами
+    'открой ютуб': { command: 'open_chrome', url: 'https://youtube.com' },
+    'запусти ютуб': { command: 'open_chrome', url: 'https://youtube.com' },
+    'открой гугл': { command: 'open_chrome', url: 'https://google.com' },
+    'открой хром': { command: 'open_chrome', url: 'https://google.com' },
+    'открой браузер': { command: 'open_chrome', url: 'https://google.com' },
+    
+    // Выключение и сон
+    'выключи компьютер': { command: 'shutdown_now' },
+    'выключи пк': { command: 'shutdown_now' },
+    'выключи ноутбук': { command: 'shutdown_now' },
+    'усыпи компьютер': { command: 'sleep_now' },
+    'усыпи пк': { command: 'sleep_now' },
+    'переведи в сон': { command: 'sleep_now' },
+    
+    // Приложения по алиасам
+    'запусти калькулятор': { command: 'open_app', alias: 'calculator' },
+    'открой калькулятор': { command: 'open_app', alias: 'calculator' },
+    'запусти проводник': { command: 'open_app', alias: 'explorer' },
+    'открой проводник': { command: 'open_app', alias: 'explorer' },
+    'запусти диспетчер задач': { command: 'open_app', alias: 'taskmgr' },
+    'открой диспетчер': { command: 'open_app', alias: 'taskmgr' },
+    
+    // Fallback команды
+    'тест': { command: 'say_ok' },
+    'проверка': { command: 'say_ok' },
+    'статус': { command: 'say_ok' }
+  };
+  
+  // Прямое соответствие
+  if (mappings[text]) {
+    return mappings[text];
+  }
+  
+  // Если ничего не найдено - возвращаем say_ok
+  return { command: 'say_ok' };
+}
+
+function generateAliceResponse(command: CommandRequest, result: ApiResponse) {
+  if (!result.ok) {
+    return {
+      text: `Ошибка: ${result.error}`,
+      tts: 'Произошла ошибка при выполнении команды.'
+    };
+  }
+
+  switch (command.command) {
+    case 'open_notepad':
+      return {
+        text: 'Блокнот открыт.',
+        tts: 'Блокнот открыт.'
+      };
+      
+    case 'open_chrome':
+      const domain = command.url ? command.url.replace('https://', '').split('/')[0] : 'браузер';
+      return {
+        text: `Открываю ${domain}.`,
+        tts: `Открываю ${domain}.`
+      };
+      
+    case 'shutdown_now':
+      return {
+        text: 'Компьютер выключается.',
+        tts: 'Компьютер выключается. До свидания!'
+      };
+      
+    case 'sleep_now':
+      return {
+        text: 'Компьютер переходит в спящий режим.',
+        tts: 'Усыпляю компьютер.'
+      };
+      
+    case 'open_app':
+      return {
+        text: `Запускаю ${command.alias}.`,
+        tts: `Запускаю ${command.alias}.`
+      };
+      
+    case 'say_ok':
+    default:
+      return {
+        text: 'OK. Система работает.',
+        tts: 'OK. Система работает.'
+      };
+  }
+}
 
 export default app;
