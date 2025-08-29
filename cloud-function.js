@@ -1,9 +1,15 @@
 // Alice skill for Yandex Cloud Functions
-  const WEBHOOK_URL = 'https://2d19b7c3c5f5.ngrok-free.app/command';
-  const ALICE_TOKEN = 'VoicePC_SecureToken_2024_abcd1234efgh5678';
+const WEBHOOK_URL = 'https://69ced0f4eb79.ngrok-free.app/command';
+const ALICE_TOKEN = 'VoicePC_SecureToken_2024_abcd1234efgh5678';
 
-  // Command mappings (твои команды остаются)
+// Command mappings
 const COMMAND_MAPPINGS = {
+  // Команды активации навыка
+  'запусти навык головной отрыв': { command: 'say_ok' },
+  'запусти головной отрыв': { command: 'say_ok' },
+  'головной отрыв': { command: 'say_ok' },
+  '': { command: 'say_ok' },
+  
   // Блокнот
   'запусти блокнот': { command: 'open_notepad' },
   'открой блокнот': { command: 'open_notepad' },
@@ -38,15 +44,15 @@ const COMMAND_MAPPINGS = {
   'статус': { command: 'say_ok' }
 };
 
-  function parseUserCommand(userText) {
-    const text = userText.toLowerCase().trim();
-    if (COMMAND_MAPPINGS[text]) {
-      return COMMAND_MAPPINGS[text];
-    }
-    return { command: 'say_ok' };
+function parseUserCommand(userText) {
+  const text = userText.toLowerCase().trim();
+  if (COMMAND_MAPPINGS[text]) {
+    return COMMAND_MAPPINGS[text];
   }
+  return { command: 'say_ok' };
+}
 
-  module.exports.handler = async (event, context) => {
+module.exports.handler = async (event, context) => {
     // ИСПРАВЛЕНО: event уже содержит данные от Алисы
     const req = event;
 
@@ -101,42 +107,48 @@ const COMMAND_MAPPINGS = {
             responseText = 'Блокнот открыт.';
             break;
           case 'open_chrome':
-            responseText = `Открываю ${commandPayload.url?.replace('https://',
-  '').split('/')[0] || 'браузер'}.`;
+            responseText = `Открываю ${commandPayload.url?.replace('https://', '').split('/')[0] || 'браузер'}.`;
+            break;
+          case 'open_app':
+            responseText = `Запускаю ${commandPayload.alias || 'приложение'}.`;
+            break;
+          case 'shutdown_now':
+            responseText = 'Компьютер выключается.';
+            break;
+          case 'sleep_now':
+            responseText = 'Компьютер переходит в спящий режим.';
             break;
           case 'say_ok':
           default:
-            responseText = 'OK. Система работает.';
+            if (userText.includes('навык') || userText === '') {
+              responseText = 'Привет! Я управляю твоим компьютером. Скажи "блокнот" или "открой ютуб".';
+            } else {
+              responseText = 'OK. Система работает.';
+            }
         }
       } else {
         responseText = `Ошибка: ${result.error}`;
       }
 
       return {
-        statusCode: 200,
-        body: JSON.stringify({
-          response: {
-            text: responseText,
-            tts: responseText,
-            end_session: false
-          },
-          version: '1.0'
-        })
+        response: {
+          text: responseText,
+          tts: responseText,
+          end_session: false
+        },
+        version: '1.0'
       };
 
     } catch (error) {
       console.error(`[${sessionId}] Error:`, error);
 
       return {
-        statusCode: 200,
-        body: JSON.stringify({
-          response: {
-            text: 'Сервер недоступен. Проверьте подключение к компьютеру.',
-            tts: 'Сервер недоступен.',
-            end_session: false
-          },
-          version: '1.0'
-        })
+        response: {
+          text: 'Сервер недоступен. Проверьте подключение к компьютеру.',
+          tts: 'Сервер недоступен.',
+          end_session: false
+        },
+        version: '1.0'
       };
     }
   };
