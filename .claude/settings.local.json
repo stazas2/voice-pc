@@ -16,7 +16,8 @@
       "Bash(taskkill:*)",
       "Bash(ngrok:*)",
       "Bash(timeout:*)",
-      "Bash(npm install:*)"
+      "Bash(npm install:*)",
+      "Bash(rm:*)"
     ],
     "deny": [],
     "ask": []

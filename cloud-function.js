@@ -1,10 +1,8 @@
 // Alice skill for Yandex Cloud Functions
-// Connects to your local PC via ngrok
+  const WEBHOOK_URL = 'https://2d19b7c3c5f5.ngrok-free.app/command';
+  const ALICE_TOKEN = 'VoicePC_SecureToken_2024_abcd1234efgh5678';
 
-const WEBHOOK_URL = 'https://18374d97e1f4.ngrok-free.app/command';
-const ALICE_TOKEN = 'VoicePC_SecureToken_2024_abcd1234efgh5678';
-
-// Command mappings
+  // Command mappings (твои команды остаются)
 const COMMAND_MAPPINGS = {
   // Блокнот
   'запусти блокнот': { command: 'open_notepad' },
@@ -40,102 +38,105 @@ const COMMAND_MAPPINGS = {
   'статус': { command: 'say_ok' }
 };
 
-function parseUserCommand(userText) {
-  const text = userText.toLowerCase().trim();
-  
-  if (COMMAND_MAPPINGS[text]) {
-    return COMMAND_MAPPINGS[text];
+  function parseUserCommand(userText) {
+    const text = userText.toLowerCase().trim();
+    if (COMMAND_MAPPINGS[text]) {
+      return COMMAND_MAPPINGS[text];
+    }
+    return { command: 'say_ok' };
   }
-  
-  return { command: 'say_ok' };
-}
 
-// Main handler for Yandex Cloud Functions
-module.exports.handler = async (event, context) => {
-  const req = JSON.parse(event.body || '{}');
-  
-  const userText = req.request?.command || '';
-  const sessionId = req.session?.session_id || 'unknown';
-  
-  console.log(`[${sessionId}] User said: "${userText}"`);
-  
-  try {
-    // Send request to your PC server
-    const https = require('https');
-    const url = require('url');
-    
-    const requestData = JSON.stringify({
-      request: { command: userText },
-      session: { session_id: sessionId }
-    });
-    
-    const options = url.parse(WEBHOOK_URL);
-    options.method = 'POST';
-    options.headers = {
-      'Content-Type': 'application/json',
-      'Content-Length': Buffer.byteLength(requestData),
-      'X-ALICE-TOKEN': ALICE_TOKEN
-    };
-    
-    const result = await new Promise((resolve, reject) => {
-      const req = https.request(options, (res) => {
-        let data = '';
-        res.on('data', chunk => data += chunk);
-        res.on('end', () => {
-          try {
-            resolve(JSON.parse(data));
-          } catch (e) {
-            reject(e);
-          }
-        });
-      });
-      
-      req.on('error', reject);
-      req.write(requestData);
-      req.end();
-    });
-    
-    console.log(`[${sessionId}] PC response:`, result);
-    
-    // Return Alice response
-    let aliceResponse;
-    if (result.response) {
-      aliceResponse = {
-        text: result.response.text,
-        tts: result.response.tts || result.response.text
+  module.exports.handler = async (event, context) => {
+    // ИСПРАВЛЕНО: event уже содержит данные от Алисы
+    const req = event;
+
+    const userText = req.request?.command || '';
+    const sessionId = req.session?.session_id || 'unknown';
+
+    console.log(`[${sessionId}] User said: "${userText}"`);
+
+    try {
+      // Парсим команду пользователя в формат API
+      const commandPayload = parseUserCommand(userText);
+      console.log(`[${sessionId}] Mapped to:`, commandPayload);
+
+      const https = require('https');
+      const url = require('url');
+
+      const requestData = JSON.stringify(commandPayload);
+
+      const options = url.parse(WEBHOOK_URL);
+      options.method = 'POST';
+      options.headers = {
+        'Content-Type': 'application/json',
+        'Content-Length': Buffer.byteLength(requestData),
+        'X-ALICE-TOKEN': ALICE_TOKEN
       };
-    } else {
-      aliceResponse = {
-        text: 'Произошла ошибка при выполнении команды.',
-        tts: 'Произошла ошибка при выполнении команды.'
+
+      const result = await new Promise((resolve, reject) => {
+        const req = https.request(options, (res) => {
+          let data = '';
+          res.on('data', chunk => data += chunk);
+          res.on('end', () => {
+            try {
+              resolve(JSON.parse(data));
+            } catch (e) {
+              reject(e);
+            }
+          });
+        });
+
+        req.on('error', reject);
+        req.write(requestData);
+        req.end();
+      });
+
+      console.log(`[${sessionId}] PC response:`, result);
+
+      // Формируем ответ для Алисы на основе результата
+      let responseText;
+      if (result.ok) {
+        switch (commandPayload.command) {
+          case 'open_notepad':
+            responseText = 'Блокнот открыт.';
+            break;
+          case 'open_chrome':
+            responseText = `Открываю ${commandPayload.url?.replace('https://',
+  '').split('/')[0] || 'браузер'}.`;
+            break;
+          case 'say_ok':
+          default:
+            responseText = 'OK. Система работает.';
+        }
+      } else {
+        responseText = `Ошибка: ${result.error}`;
+      }
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          response: {
+            text: responseText,
+            tts: responseText,
+            end_session: false
+          },
+          version: '1.0'
+        })
+      };
+
+    } catch (error) {
+      console.error(`[${sessionId}] Error:`, error);
+
+      return {
+        statusCode: 200,
+        body: JSON.stringify({
+          response: {
+            text: 'Сервер недоступен. Проверьте подключение к компьютеру.',
+            tts: 'Сервер недоступен.',
+            end_session: false
+          },
+          version: '1.0'
+        })
       };
     }
-    
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        response: {
-          text: aliceResponse.text,
-          tts: aliceResponse.tts,
-          end_session: false
-        },
-        version: '1.0'
-      })
-    };
-    
-  } catch (error) {
-    console.error(`[${sessionId}] Error:`, error);
-    
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        response: {
-          text: 'Сервер недоступен. Проверьте подключение к компьютеру.',
-          tts: 'Сервер недоступен.',
-          end_session: false
-        },
-        version: '1.0'
-      })
-    };
-  }
-};
+  };

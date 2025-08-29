@@ -1,9 +1,0 @@
-{
-  "name": "alice-voice-pc-skill",
-  "version": "1.0.0",
-  "main": "index.js",
-  "dependencies": {},
-  "engines": {
-    "node": "18"
-  }
-}

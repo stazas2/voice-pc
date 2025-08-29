@@ -1,28 +1,20 @@
 @echo off
-title Voice PC Controller (Local Server Only)
-echo Starting Voice PC Controller - Local Server...
+title Voice PC - Local Server Only
+color 0B
+echo ===============================================
+echo   VOICE PC CONTROLLER - LOCAL SERVER
+echo ===============================================
 echo.
-echo This starts ONLY the local command server (no ngrok needed for cloud setup)
+echo NOTE: Use start-with-ngrok.bat for full setup
 echo.
 
-REM Stop any existing processes
-echo Stopping existing Node.js processes...
-powershell -Command "Get-Process | Where-Object {$_.ProcessName -eq 'node'} | Stop-Process -Force" 2>nul
-timeout /t 2 /nobreak >nul
+powershell -Command "Get-Process -Name node -ErrorAction SilentlyContinue | Stop-Process -Force" 2>nul
 
-REM Build the project
-echo Building project...
-call npm run build
-if errorlevel 1 (
-    echo Build failed!
-    pause
-    exit /b 1
-)
+echo Building and starting local server...
+call npm run build -s
+if errorlevel 1 (color 0C && echo BUILD FAILED! && pause && exit /b 1)
 
-REM Start the server
-echo Starting local command server on port 3000...
-echo Server will be available at: http://localhost:3000
-echo.
+echo Server starting on http://localhost:3000
 call npm start
 
 pause
