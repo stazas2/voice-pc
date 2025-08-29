@@ -2,7 +2,7 @@
 const { default: fetch } = require('node-fetch');
 
 // Импортируем функции из alice-skill-complete.js
-const WEBHOOK_URL = 'https://87175e170555.ngrok-free.app/webhook';
+const WEBHOOK_URL = 'https://18374d97e1f4.ngrok-free.app/webhook';
 
 const COMMAND_MAPPINGS = {
   'запусти блокнот': { command: 'open_notepad' },
