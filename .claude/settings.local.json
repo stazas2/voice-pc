@@ -17,7 +17,16 @@
       "Bash(ngrok:*)",
       "Bash(timeout:*)",
       "Bash(npm install:*)",
-      "Bash(rm:*)"
+      "Bash(rm:*)",
+      "Bash(dir:*)",
+      "Bash(cloudflared:*)",
+      "Bash(choco:*)",
+      "Bash(./cloudflared.exe --version)",
+      "Bash(./cloudflared.exe tunnel:*)",
+      "Bash(pkill:*)",
+      "Read(C:\\Users\\malys\\.cloudflared/**)",
+      "Read(C:\\Users\\malys/**)",
+      "Bash(nslookup:*)"
     ],
     "deny": [],
     "ask": []

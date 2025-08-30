@@ -1,5 +1,5 @@
 // Alice skill for Yandex Cloud Functions
-const WEBHOOK_URL = 'https://69ced0f4eb79.ngrok-free.app/command';
+const WEBHOOK_URL = 'https://voice-pc.stazas2.space/command';
 const ALICE_TOKEN = 'VoicePC_SecureToken_2024_abcd1234efgh5678';
 
 // Command mappings
