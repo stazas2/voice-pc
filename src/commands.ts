@@ -32,7 +32,9 @@ export class WindowsCommands {
       'lock_screen',
       'minimize_all', 
       'show_desktop',
-      'empty_recycle_bin'
+      'empty_recycle_bin',
+      'volume_set',
+      'close_window'
     ];
     return edgeJsAvailable && edgeJsCommands.includes(command);
   }
@@ -58,6 +60,12 @@ export class WindowsCommands {
           break;
         case 'empty_recycle_bin':
           result = await WindowsCommandsEdge.emptyRecycleBin();
+          break;
+        case 'volume_set':
+          result = await WindowsCommandsEdge.volumeSet(request.level || 50);
+          break;
+        case 'close_window':
+          result = await WindowsCommandsEdge.closeWindow(request.processName || 'unknown');
           break;
         default:
           throw new Error(`Edge-js command not implemented: ${request.command}`);
@@ -106,6 +114,14 @@ export class WindowsCommands {
           break;
         case 'empty_recycle_bin':
           result = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'empty-recycle-bin.ps1')], 5000);
+          break;
+        case 'volume_set':
+          const level = request.level || 50;
+          result = await this.executeCommand('powershell', ['-Command', `$vol = ${level}; $wshShell = new-object -com wscript.shell; for($i=0;$i -lt 50;$i++){$wshShell.SendKeys([char]174)}; for($i=0;$i -lt $vol;$i+=2){$wshShell.SendKeys([char]175)}`], 5000);
+          break;
+        case 'close_window':
+          const processName = request.processName || 'unknown';
+          result = await this.executeCommand('powershell', ['-Command', `Get-Process -Name "*${processName}*" -ErrorAction SilentlyContinue | ForEach-Object { $_.CloseMainWindow() }; Start-Sleep -Milliseconds 500; Get-Process -Name "*${processName}*" -ErrorAction SilentlyContinue | Stop-Process -Force`], 5000);
           break;
         default:
           throw new Error(`PowerShell fallback not available for: ${request.command}`);
@@ -448,6 +464,8 @@ export class WindowsCommands {
         case 'show_desktop':
         case 'lock_screen':
         case 'empty_recycle_bin':
+        case 'volume_set':
+        case 'close_window':
           if (this.shouldUseEdgeJs(request.command)) {
             return this.executeEdgeJsCommand(request);
           } else {
