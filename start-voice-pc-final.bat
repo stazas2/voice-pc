@@ -1,6 +1,10 @@
 @echo off
 title Voice PC + Alice - PERMANENT SOLUTION
 color 0A
+
+REM Change to the script directory
+cd /d "%~dp0"
+
 echo ===============================================
 echo   VOICE PC CONTROLLER - PERMANENT SOLUTION
 echo   URL: https://voice-pc.stazas2.space
@@ -19,7 +23,7 @@ call npm run build -s
 if errorlevel 1 (color 0C && echo BUILD FAILED! && pause && exit /b 1)
 
 echo [2/3] Starting local server with UX improvements...
-start "Voice PC Server" /min cmd /c "node dist/server.js"
+start "Voice PC Server" cmd /k "set PORT=3000 & node dist/server.js"
 timeout /t 3 /nobreak >nul
 
 echo [3/3] Starting permanent Cloudflare Tunnel (hidden)...

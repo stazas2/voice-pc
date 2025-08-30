@@ -65,7 +65,6 @@ const COMMAND_MAPPINGS = {
   'открой документы': { command: 'open_documents' },
   'покажи документы': { command: 'open_documents' },
   'открой рабочий стол': { command: 'open_desktop' },
-  'покажи рабочий стол': { command: 'open_desktop' },
   'последний скачанный': { command: 'open_latest_download' },
   'что скачал последним': { command: 'open_latest_download' },
   

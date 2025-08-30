@@ -7,6 +7,7 @@ import { logger } from './logger';
 import { createSecurityManager } from './security';
 import { windowsCommands } from './commands';
 import { trayManager } from './tray-simple';
+import { dashboardManager } from './dashboard';
 
 // Load environment variables
 dotenv.config();
@@ -26,7 +27,7 @@ const serverStartTime = Date.now();
 // Create security manager
 const security = createSecurityManager(ALICE_TOKEN);
 
-// Middleware
+// Middleware (must come before routes)
 app.use(cors({
   origin: false, // No browser CORS - webhook only
   credentials: false
@@ -34,6 +35,12 @@ app.use(cors({
 
 app.use(express.json({ limit: '1mb' }));
 app.use(express.urlencoded({ extended: true, limit: '1mb' }));
+
+// Serve static files for dashboard
+app.use('/public', express.static('public'));
+
+// Add dashboard routes
+app.use(dashboardManager.getRouter());
 
 // Apply logging to all requests
 app.use(security.logRequestMiddleware);
@@ -124,6 +131,7 @@ app.post('/command', security.authMiddleware, async (req: Request, res: Response
 
     // Update tray status to busy while executing
     trayManager.updateStatus('busy');
+    dashboardManager.broadcastStatus('busy');
 
     // Execute command
     const result = await windowsCommands.executeCommandRequest(commandRequest);
@@ -141,10 +149,14 @@ app.post('/command', security.authMiddleware, async (req: Request, res: Response
     // Update tray status and notify
     if (result.ok) {
       trayManager.updateStatus('online');
+      dashboardManager.broadcastStatus('online');
+      dashboardManager.logCommand(commandRequest.command, 'success');
       trayManager.notify(`Команда "${commandRequest.command}" выполнена`, 'success');
       res.json(result);
     } else {
       trayManager.updateStatus('online');
+      dashboardManager.broadcastStatus('online');
+      dashboardManager.logCommand(commandRequest.command, 'error', result.error);
       trayManager.notify(`Ошибка выполнения "${commandRequest.command}": ${result.error}`, 'error');
       res.status(500).json(result);
     }
@@ -302,12 +314,17 @@ async function initializeTray() {
 // Start server
 const server = app.listen(PORT, '0.0.0.0', async () => {
   logger.info(`🚀 Voice PC Server started on http://0.0.0.0:${PORT}`);
+  logger.info(`📊 Dashboard available at http://localhost:${PORT}/dashboard`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`Available apps: ${windowsCommands.getAvailableApps().join(', ')}`);
+  
+  // Initialize WebSocket for dashboard
+  dashboardManager.initWebSocket(server);
   
   // Initialize system tray after server starts
   await initializeTray();
   trayManager.updateStatus('online');
+  dashboardManager.broadcastStatus('online');
 });
 
 // Graceful shutdown

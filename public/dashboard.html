@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice PC Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #f0f6fc;
+            --text-secondary: #8b949e;
+            --accent-green: #238636;
+            --accent-blue: #1f6feb;
+            --accent-red: #da3633;
+            --accent-yellow: #d29922;
+            --border: #30363d;
+            --hover: #262c36;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.5;
+        }
+
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border);
+            padding: 1rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header h1 {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+
+        .status-badge {
+            padding: 0.25rem 0.75rem;
+            border-radius: 1rem;
+            font-size: 0.875rem;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .status-online { background: var(--accent-green); color: white; }
+        .status-busy { background: var(--accent-yellow); color: black; }
+        .status-offline { background: var(--accent-red); color: white; }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 2rem;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 1rem;
+            margin-bottom: 2rem;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .nav-tab {
+            background: none;
+            border: none;
+            color: var(--text-secondary);
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s ease;
+        }
+
+        .nav-tab:hover {
+            color: var(--text-primary);
+        }
+
+        .nav-tab.active {
+            color: var(--accent-blue);
+            border-bottom-color: var(--accent-blue);
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 1.5rem;
+            transition: border-color 0.2s ease;
+        }
+
+        .stat-card:hover {
+            border-color: var(--accent-blue);
+        }
+
+        .stat-card h3 {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .stat-value {
+            font-size: 2rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .commands-table {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            overflow: hidden;
+        }
+
+        .table-header {
+            background: var(--bg-tertiary);
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 1rem;
+            font-weight: 600;
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .command-row {
+            display: grid;
+            grid-template-columns: 2fr 1fr 1fr auto;
+            gap: 1rem;
+            padding: 1rem;
+            border-bottom: 1px solid var(--border);
+            align-items: center;
+            transition: background-color 0.2s ease;
+        }
+
+        .command-row:hover {
+            background: var(--hover);
+        }
+
+        .command-row:last-child {
+            border-bottom: none;
+        }
+
+        .command-text {
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            padding: 0.5rem;
+            border-radius: 0.25rem;
+            color: var(--text-primary);
+            font-size: 0.875rem;
+            width: 100%;
+        }
+
+        .command-text:focus {
+            outline: 2px solid var(--accent-blue);
+            border-color: var(--accent-blue);
+        }
+
+        .btn {
+            background: var(--accent-blue);
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            font-size: 0.875rem;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+
+        .btn:hover {
+            background: #1a5bd8;
+        }
+
+        .btn-small {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+
+        .btn-danger {
+            background: var(--accent-red);
+        }
+
+        .btn-danger:hover {
+            background: #b62324;
+        }
+
+        .logs-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            height: 500px;
+            overflow-y: auto;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 0.875rem;
+        }
+
+        .log-entry {
+            padding: 0.5rem 1rem;
+            border-bottom: 1px solid var(--border);
+            display: flex;
+            gap: 1rem;
+        }
+
+        .log-entry:last-child {
+            border-bottom: none;
+        }
+
+        .log-timestamp {
+            color: var(--text-secondary);
+            flex-shrink: 0;
+        }
+
+        .log-command {
+            color: var(--accent-blue);
+            flex-shrink: 0;
+        }
+
+        .log-status-success { color: var(--accent-green); }
+        .log-status-error { color: var(--accent-red); }
+
+        .loading {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            color: var(--text-secondary);
+        }
+
+        .spinner {
+            border: 2px solid var(--border);
+            border-top: 2px solid var(--accent-blue);
+            border-radius: 50%;
+            width: 1rem;
+            height: 1rem;
+            animation: spin 1s linear infinite;
+            margin-right: 0.5rem;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .connection-status {
+            position: fixed;
+            bottom: 1rem;
+            right: 1rem;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 0.5rem;
+            padding: 0.75rem 1rem;
+            font-size: 0.875rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            z-index: 1000;
+        }
+
+        .connection-dot {
+            width: 0.5rem;
+            height: 0.5rem;
+            border-radius: 50%;
+            background: var(--accent-green);
+        }
+
+        .connection-dot.disconnected {
+            background: var(--accent-red);
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 1rem;
+            }
+            
+            .header {
+                padding: 1rem;
+            }
+            
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .table-header,
+            .command-row {
+                grid-template-columns: 1fr;
+                gap: 0.5rem;
+            }
+            
+            .nav-tabs {
+                overflow-x: auto;
+                white-space: nowrap;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            🎤 Voice PC Dashboard
+        </h1>
+        <div id="status-badge" class="status-badge status-offline">
+            <div class="connection-dot disconnected"></div>
+            Connecting...
+        </div>
+    </div>
+
+    <div class="container">
+        <div class="nav-tabs">
+            <button class="nav-tab active" onclick="showTab('dashboard')">📊 Dashboard</button>
+            <button class="nav-tab" onclick="showTab('commands')">🎯 Commands</button>
+            <button class="nav-tab" onclick="showTab('logs')">📝 Logs</button>
+            <button class="nav-tab" onclick="showTab('settings')">⚙️ Settings</button>
+        </div>
+
+        <!-- Dashboard Tab -->
+        <div id="dashboard" class="tab-content active">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <h3>Server Status</h3>
+                    <div class="stat-value" id="server-status">
+                        🟢 Online
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h3>Uptime</h3>
+                    <div class="stat-value" id="uptime">
+                        0s
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h3>Total Commands</h3>
+                    <div class="stat-value" id="total-commands">
+                        0
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <h3>Success Rate</h3>
+                    <div class="stat-value" id="success-rate">
+                        100%
+                    </div>
+                </div>
+            </div>
+
+            <div class="stat-card">
+                <h3>Recent Commands</h3>
+                <div id="recent-commands">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading recent commands...
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Commands Tab -->
+        <div id="commands" class="tab-content">
+            <div class="commands-table">
+                <div class="table-header">
+                    <div>Voice Command</div>
+                    <div>Action</div>
+                    <div>Parameters</div>
+                    <div>Actions</div>
+                </div>
+                <div id="commands-list">
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        Loading commands...
+                    </div>
+                </div>
+            </div>
+            <div style="margin-top: 1rem;">
+                <button class="btn" onclick="saveCommands()">💾 Save Changes</button>
+                <button class="btn" onclick="loadCommands()" style="margin-left: 0.5rem;">🔄 Reload</button>
+                <button class="btn" onclick="addNewCommand()" style="margin-left: 0.5rem;">➕ Add Command</button>
+            </div>
+        </div>
+
+        <!-- Logs Tab -->
+        <div id="logs" class="tab-content">
+            <div class="logs-container" id="logs-container">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    Connecting to real-time logs...
+                </div>
+            </div>
+            <div style="margin-top: 1rem;">
+                <button class="btn" onclick="clearLogs()">🗑️ Clear Display</button>
+                <button class="btn" onclick="exportLogs()" style="margin-left: 0.5rem;">📥 Export Logs</button>
+            </div>
+        </div>
+
+        <!-- Settings Tab -->
+        <div id="settings" class="tab-content">
+            <div class="stat-card">
+                <h3>Server Configuration</h3>
+                <p style="color: var(--text-secondary); margin-bottom: 1rem;">
+                    Basic server settings and information
+                </p>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Server Port</label>
+                    <input type="number" class="command-text" id="server-port" value="3000" style="width: 200px;">
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Dashboard URL</label>
+                    <input type="text" class="command-text" id="dashboard-url" readonly style="width: 100%;">
+                </div>
+                
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; margin-bottom: 0.5rem; font-weight: 500;">Public Tunnel URL</label>
+                    <input type="text" class="command-text" value="https://voice-pc.stazas2.space" readonly style="width: 100%;">
+                </div>
+                
+                <button class="btn">💾 Save Settings</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="connection-status" id="connection-status">
+        <div class="connection-dot disconnected"></div>
+        Connecting to server...
+    </div>
+
+    <script src="/public/dashboard.js?v=4"></script>
+</body>
+</html>
