@@ -6,6 +6,7 @@ import { validateCommand } from './validators';
 import { logger } from './logger';
 import { createSecurityManager } from './security';
 import { windowsCommands } from './commands';
+import { trayManager } from './tray-simple';
 
 // Load environment variables
 dotenv.config();
@@ -121,6 +122,9 @@ app.post('/command', security.authMiddleware, async (req: Request, res: Response
       });
     }
 
+    // Update tray status to busy while executing
+    trayManager.updateStatus('busy');
+
     // Execute command
     const result = await windowsCommands.executeCommandRequest(commandRequest);
 
@@ -134,9 +138,14 @@ app.post('/command', security.authMiddleware, async (req: Request, res: Response
       error: result.ok ? undefined : result.error
     });
 
+    // Update tray status and notify
     if (result.ok) {
+      trayManager.updateStatus('online');
+      trayManager.notify(`Команда "${commandRequest.command}" выполнена`, 'success');
       res.json(result);
     } else {
+      trayManager.updateStatus('online');
+      trayManager.notify(`Ошибка выполнения "${commandRequest.command}": ${result.error}`, 'error');
       res.status(500).json(result);
     }
 
@@ -278,16 +287,42 @@ app.use((error: Error, req: Request, res: Response, next: any) => {
   });
 });
 
+// Initialize system tray
+async function initializeTray() {
+  try {
+    await trayManager.show();
+    trayManager.notify('Voice PC запущен', 'success');
+    logger.info('System tray initialized');
+  } catch (error) {
+    logger.error('Failed to initialize system tray:', error);
+    // Продолжаем работу без трея
+  }
+}
+
 // Start server
-const server = app.listen(PORT, '0.0.0.0', () => {
+const server = app.listen(PORT, '0.0.0.0', async () => {
   logger.info(`🚀 Voice PC Server started on http://0.0.0.0:${PORT}`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
   logger.info(`Available apps: ${windowsCommands.getAvailableApps().join(', ')}`);
+  
+  // Initialize system tray after server starts
+  await initializeTray();
+  trayManager.updateStatus('online');
 });
 
 // Graceful shutdown
 process.on('SIGTERM', () => {
   logger.info('SIGTERM received, shutting down gracefully');
+  trayManager.close();
+  server.close(() => {
+    logger.info('Server closed');
+    process.exit(0);
+  });
+});
+
+process.on('SIGINT', () => {
+  logger.info('SIGINT received, shutting down gracefully');
+  trayManager.close();
   server.close(() => {
     logger.info('Server closed');
     process.exit(0);

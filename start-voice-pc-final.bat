@@ -18,12 +18,12 @@ echo [1/3] Building project...
 call npm run build -s
 if errorlevel 1 (color 0C && echo BUILD FAILED! && pause && exit /b 1)
 
-echo [2/3] Starting local server...
-start "Voice PC Server" /min cmd /c "npm start"
+echo [2/3] Starting local server with UX improvements...
+start "Voice PC Server" /min cmd /c "node dist/server.js"
 timeout /t 3 /nobreak >nul
 
-echo [3/3] Starting permanent Cloudflare Tunnel...
-start "Cloudflare Tunnel" cmd /k "cloudflared.exe tunnel run --token eyJhIjoiNTEyNDU1M2RjMjAwMDIzZjRmZWMwNDRiNzg4MWRjNGUiLCJ0IjoiZTFiMTVjMTItZTJiNC00MjNhLWFmMzctNTU2YWU0NjY3MWI2IiwicyI6IlkyVTBZekZpWWprdFlXWmlOUzAwT1Rjd0xUazBZamt0TjJWbU9UQXpNRGt5WmpNMSJ9"
+echo [3/3] Starting permanent Cloudflare Tunnel (hidden)...
+start "Cloudflare Tunnel" /min powershell -WindowStyle Hidden -Command "& .\cloudflared.exe tunnel run --token eyJhIjoiNTEyNDU1M2RjMjAwMDIzZjRmZWMwNDRiNzg4MWRjNGUiLCJ0IjoiZTFiMTVjMTItZTJiNC00MjNhLWFmMzctNTU2YWU0NjY3MWI2IiwicyI6IlkyVTBZekZpWWprdFlXWmlOUzAwT1Rjd0xUazBZamt0TjJWbU9UQXpNRGt5WmpNMSJ9; Read-Host 'Press Enter to close'"
 timeout /t 5 /nobreak >nul
 
 echo.
@@ -41,5 +41,9 @@ echo Then say: "блокнот" or "открой ютуб"
 echo ===============================================
 echo.
 echo DONE! Voice PC is ready. URL never changes again!
+echo.
+echo 💡 Tip: Cloudflare Tunnel запущен скрыто. 
+echo    Если нужно посмотреть логи, запусти:
+echo    show-tunnel-logs.bat
 echo.
 pause

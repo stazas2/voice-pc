@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="32" cy="32" r="30" fill="#4CAF50" stroke="#2E7D32" stroke-width="2"/>
+  <path d="M20 32 L28 40 L44 24" stroke="white" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="32" y="18" text-anchor="middle" fill="white" font-family="Arial" font-size="10" font-weight="bold">VOICE</text>
+  <text x="32" y="52" text-anchor="middle" fill="white" font-family="Arial" font-size="8">PC</text>
+</svg>

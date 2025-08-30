@@ -40,7 +40,11 @@
       "Bash(PORT=3008 npm start)",
       "Bash(PORT=3009 npm start)",
       "Bash(PORT=3010 npm start)",
-      "Bash(set PORT=3010)"
+      "Bash(set PORT=3010)",
+      "Bash(SET PORT=3010)",
+      "Bash(PORT=3010 node dist/server.js)",
+      "Bash(PORT=3011 node dist/server.js)",
+      "Bash(start cmd /c start-voice-pc-final.bat)"
     ],
     "deny": [],
     "ask": []
