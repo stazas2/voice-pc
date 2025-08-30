@@ -214,6 +214,165 @@ export class WindowsCommands {
             return { ok: false, error: `Failed to open app: ${appResult.error}` };
           }
 
+        // Media control commands
+        case 'media_pause':
+          const pauseResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{MEDIA_PLAY_PAUSE}")'], 3000);
+          return pauseResult.success ? 
+            { ok: true, action: 'media_pause', details: { message: 'Media paused' } } :
+            { ok: false, error: `Failed to pause media: ${pauseResult.error}` };
+
+        case 'media_play':
+          const playResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{MEDIA_PLAY_PAUSE}")'], 3000);
+          return playResult.success ? 
+            { ok: true, action: 'media_play', details: { message: 'Media resumed' } } :
+            { ok: false, error: `Failed to resume media: ${playResult.error}` };
+
+        case 'media_next':
+          const nextResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{MEDIA_NEXT_TRACK}")'], 3000);
+          return nextResult.success ? 
+            { ok: true, action: 'media_next', details: { message: 'Next track' } } :
+            { ok: false, error: `Failed to next track: ${nextResult.error}` };
+
+        case 'media_previous':
+          const prevResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{MEDIA_PREV_TRACK}")'], 3000);
+          return prevResult.success ? 
+            { ok: true, action: 'media_previous', details: { message: 'Previous track' } } :
+            { ok: false, error: `Failed to previous track: ${prevResult.error}` };
+
+        case 'media_stop':
+          const stopResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{MEDIA_STOP}")'], 3000);
+          return stopResult.success ? 
+            { ok: true, action: 'media_stop', details: { message: 'Media stopped' } } :
+            { ok: false, error: `Failed to stop media: ${stopResult.error}` };
+
+        case 'volume_up':
+          const volUpResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{VOLUME_UP}")'], 3000);
+          return volUpResult.success ? 
+            { ok: true, action: 'volume_up', details: { message: 'Volume increased' } } :
+            { ok: false, error: `Failed to increase volume: ${volUpResult.error}` };
+
+        case 'volume_down':
+          const volDownResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{VOLUME_DOWN}")'], 3000);
+          return volDownResult.success ? 
+            { ok: true, action: 'volume_down', details: { message: 'Volume decreased' } } :
+            { ok: false, error: `Failed to decrease volume: ${volDownResult.error}` };
+
+        case 'volume_mute':
+          const muteResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{VOLUME_MUTE}")'], 3000);
+          return muteResult.success ? 
+            { ok: true, action: 'volume_mute', details: { message: 'Volume muted' } } :
+            { ok: false, error: `Failed to mute volume: ${muteResult.error}` };
+
+        case 'volume_unmute':
+          const unmuteResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{VOLUME_MUTE}")'], 3000);
+          return unmuteResult.success ? 
+            { ok: true, action: 'volume_unmute', details: { message: 'Volume unmuted' } } :
+            { ok: false, error: `Failed to unmute volume: ${unmuteResult.error}` };
+
+        // File operations
+        case 'open_downloads':
+          const downloadsResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'open-downloads.ps1')], 5000);
+          return downloadsResult.success ? 
+            { ok: true, action: 'open_downloads', details: { path: 'Downloads folder' } } :
+            { ok: false, error: `Failed to open downloads: ${downloadsResult.error}` };
+
+        case 'open_documents':
+          const docsResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'open-documents.ps1')], 5000);
+          return docsResult.success ? 
+            { ok: true, action: 'open_documents', details: { path: 'Documents folder' } } :
+            { ok: false, error: `Failed to open documents: ${docsResult.error}` };
+
+        case 'open_desktop':
+          const desktopResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'open-desktop.ps1')], 5000);
+          return desktopResult.success ? 
+            { ok: true, action: 'open_desktop', details: { path: 'Desktop folder' } } :
+            { ok: false, error: `Failed to open desktop: ${desktopResult.error}` };
+
+        case 'open_latest_download':
+          const latestResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'open-latest-download.ps1')], 5000);
+          return latestResult.success ? 
+            { ok: true, action: 'open_latest_download', details: { message: 'Latest download opened' } } :
+            { ok: false, error: `Failed to open latest download: ${latestResult.error}` };
+
+        // System information commands
+        case 'system_cpu':
+          const cpuResult = await this.executeCommand('powershell', ['-Command', 
+            'Get-WmiObject -Class Win32_Processor | Measure-Object -Property LoadPercentage -Average | Select -ExpandProperty Average'
+          ], 5000);
+          return cpuResult.success ? 
+            { ok: true, action: 'system_cpu', data: { cpu: cpuResult.output?.trim() + '%' } } :
+            { ok: false, error: `Failed to get CPU info: ${cpuResult.error}` };
+
+        case 'system_memory':
+          const memResult = await this.executeCommand('powershell', ['-Command', 
+            '$total = (Get-WmiObject -Class Win32_ComputerSystem).TotalPhysicalMemory; $available = (Get-WmiObject -Class Win32_OperatingSystem).FreePhysicalMemory * 1024; [math]::Round(($total - $available) / $total * 100, 1)'
+          ], 5000);
+          return memResult.success ? 
+            { ok: true, action: 'system_memory', data: { memory: memResult.output?.trim() + '%' } } :
+            { ok: false, error: `Failed to get memory info: ${memResult.error}` };
+
+        case 'system_disk':
+          const diskResult = await this.executeCommand('powershell', ['-Command', 
+            'Get-WmiObject -Class Win32_LogicalDisk -Filter "DriveType=3" | Select-Object @{Name="Drive";Expression={$_.DeviceID}}, @{Name="FreeGB";Expression={[math]::Round($_.FreeSpace/1GB,1)}}, @{Name="TotalGB";Expression={[math]::Round($_.Size/1GB,1)}} | Format-Table -AutoSize | Out-String'
+          ], 5000);
+          return diskResult.success ? 
+            { ok: true, action: 'system_disk', data: { disk: diskResult.output?.trim() } } :
+            { ok: false, error: `Failed to get disk info: ${diskResult.error}` };
+
+        case 'system_ip':
+          const ipResult = await this.executeCommand('powershell', ['-Command', 
+            '(Invoke-WebRequest -Uri "https://ipinfo.io/ip" -UseBasicParsing).Content.Trim()'
+          ], 5000);
+          return ipResult.success ? 
+            { ok: true, action: 'system_ip', data: { ip: ipResult.output?.trim() } } :
+            { ok: false, error: `Failed to get IP info: ${ipResult.error}` };
+
+        case 'system_info':
+          const infoResult = await this.executeCommand('powershell', ['-Command', 
+            'Get-ComputerInfo | Select-Object WindowsProductName, WindowsVersion, TotalPhysicalMemory, CsProcessors | Format-List | Out-String'
+          ], 5000);
+          return infoResult.success ? 
+            { ok: true, action: 'system_info', data: { info: infoResult.output?.trim() } } :
+            { ok: false, error: `Failed to get system info: ${infoResult.error}` };
+
+        // Windows management commands
+        case 'minimize_all':
+          const minResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'minimize-all.ps1')], 5000);
+          return minResult.success ? 
+            { ok: true, action: 'minimize_all', details: { message: 'All windows minimized' } } :
+            { ok: false, error: `Failed to minimize windows: ${minResult.error}` };
+
+        case 'show_desktop':
+          const showResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'show-desktop.ps1')], 5000);
+          return showResult.success ? 
+            { ok: true, action: 'show_desktop', details: { message: 'Desktop shown' } } :
+            { ok: false, error: `Failed to show desktop: ${showResult.error}` };
+
+        case 'lock_screen':
+          const lockResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'lock-screen.ps1')], 5000);
+          return lockResult.success ? 
+            { ok: true, action: 'lock_screen', details: { message: 'Screen locked' } } :
+            { ok: false, error: `Failed to lock screen: ${lockResult.error}` };
+
+        case 'empty_recycle_bin':
+          const binResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'empty-recycle-bin.ps1')], 5000);
+          return binResult.success ? 
+            { ok: true, action: 'empty_recycle_bin', details: { message: 'Recycle bin emptied' } } :
+            { ok: false, error: `Failed to empty recycle bin: ${binResult.error}` };
+
+        // Screenshot and screen recording
+        case 'screenshot':
+          const screenshotResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'screenshot.ps1')], 10000);
+          return screenshotResult.success ? 
+            { ok: true, action: 'screenshot', details: { path: screenshotResult.output?.trim() } } :
+            { ok: false, error: `Failed to take screenshot: ${screenshotResult.error}` };
+
+        case 'screen_record':
+          const recordResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'screen-record.ps1'), '-Duration', (request.duration || 10).toString()], (request.duration || 10) * 1000 + 5000);
+          return recordResult.success ? 
+            { ok: true, action: 'screen_record', details: { duration: request.duration || 10, message: 'Screen recorded' } } :
+            { ok: false, error: `Failed to record screen: ${recordResult.error}` };
+
         default:
           return { ok: false, error: `Unknown command: ${request.command}` };
       }

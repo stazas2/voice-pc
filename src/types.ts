@@ -1,13 +1,26 @@
 export interface CommandRequest {
-  command: 'open_notepad' | 'open_chrome' | 'shutdown_now' | 'sleep_now' | 'open_app' | 'say_ok';
+  command: 'open_notepad' | 'open_chrome' | 'shutdown_now' | 'sleep_now' | 'open_app' | 'say_ok' |
+    // Media commands
+    'media_pause' | 'media_play' | 'media_next' | 'media_previous' | 'media_stop' |
+    'volume_up' | 'volume_down' | 'volume_mute' | 'volume_unmute' |
+    // File operations
+    'open_downloads' | 'open_documents' | 'open_desktop' | 'open_latest_download' |
+    // System information
+    'system_cpu' | 'system_memory' | 'system_disk' | 'system_ip' | 'system_info' |
+    // Windows management
+    'minimize_all' | 'show_desktop' | 'lock_screen' | 'empty_recycle_bin' |
+    // Screenshot and recording
+    'screenshot' | 'screen_record';
   url?: string;
   alias?: string;
+  duration?: number; // for screen recording
 }
 
 export interface ApiResponse {
   ok: boolean;
   action?: string;
   details?: Record<string, any>;
+  data?: Record<string, any>; // for system information responses
   error?: string;
 }
 
