@@ -5,6 +5,18 @@ import { promisify } from 'util';
 import { CommandRequest, ApiResponse } from './types';
 import { logger } from './logger';
 
+// Edge-js интеграция с fallback
+let WindowsCommandsEdge: any = null;
+let edgeJsAvailable = false;
+
+try {
+  WindowsCommandsEdge = require('./windows-commands-edge');
+  edgeJsAvailable = true;
+  logger.info('✅ Edge-js API loaded successfully');
+} catch (error) {
+  logger.warn('⚠️ Edge-js not available, using PowerShell fallback:', error instanceof Error ? error.message : 'Unknown error');
+}
+
 const execFileAsync = promisify(execFile);
 
 export class WindowsCommands {
@@ -12,6 +24,102 @@ export class WindowsCommands {
 
   constructor() {
     this.loadAppsConfig();
+  }
+
+  private shouldUseEdgeJs(command: string): boolean {
+    // Команды, которые поддерживают edge-js
+    const edgeJsCommands = [
+      'lock_screen',
+      'minimize_all', 
+      'show_desktop',
+      'empty_recycle_bin'
+    ];
+    return edgeJsAvailable && edgeJsCommands.includes(command);
+  }
+
+  private async executeEdgeJsCommand(request: CommandRequest): Promise<ApiResponse> {
+    if (!WindowsCommandsEdge) {
+      throw new Error('Edge-js not available');
+    }
+
+    try {
+      let result: any;
+      const startTime = Date.now();
+      
+      switch (request.command) {
+        case 'lock_screen':
+          result = await WindowsCommandsEdge.lockScreen();
+          break;
+        case 'minimize_all':
+          result = await WindowsCommandsEdge.minimizeAllWindows();
+          break;
+        case 'show_desktop':
+          result = await WindowsCommandsEdge.showDesktop();
+          break;
+        case 'empty_recycle_bin':
+          result = await WindowsCommandsEdge.emptyRecycleBin();
+          break;
+        default:
+          throw new Error(`Edge-js command not implemented: ${request.command}`);
+      }
+
+      const duration = Date.now() - startTime;
+      
+      if (result.success) {
+        return { 
+          ok: true, 
+          action: request.command, 
+          details: { 
+            method: 'edge-js', 
+            duration: `${duration}ms`,
+            ...result
+          } 
+        };
+      } else {
+        return { 
+          ok: false, 
+          error: `Edge-js command failed: ${result.error}` 
+        };
+      }
+    } catch (error) {
+      // Fallback на PowerShell при ошибке Edge-js
+      logger.warn(`Edge-js error for ${request.command}, falling back to PowerShell:`, error);
+      return this.executePowerShellCommand(request);
+    }
+  }
+
+  private async executePowerShellCommand(request: CommandRequest): Promise<ApiResponse> {
+    // Оригинальная PowerShell логика для fallback
+    const startTime = Date.now();
+    let result: any;
+
+    try {
+      switch (request.command) {
+        case 'lock_screen':
+          result = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'lock-screen.ps1')], 5000);
+          break;
+        case 'minimize_all':
+          result = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'minimize-all.ps1')], 5000);
+          break;
+        case 'show_desktop':
+          result = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'show-desktop.ps1')], 5000);
+          break;
+        case 'empty_recycle_bin':
+          result = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'empty-recycle-bin.ps1')], 5000);
+          break;
+        default:
+          throw new Error(`PowerShell fallback not available for: ${request.command}`);
+      }
+
+      const duration = Date.now() - startTime;
+
+      return result.success ? 
+        { ok: true, action: request.command, details: { method: 'powershell', duration: `${duration}ms` } } :
+        { ok: false, error: `PowerShell command failed: ${result.error}` };
+
+    } catch (error) {
+      return { ok: false, error: `PowerShell fallback error: ${error instanceof Error ? error.message : 'Unknown error'}` };
+    }
   }
 
   private loadAppsConfig(): void {
@@ -335,30 +443,16 @@ export class WindowsCommands {
             { ok: true, action: 'system_info', data: { info: infoResult.output?.trim() } } :
             { ok: false, error: `Failed to get system info: ${infoResult.error}` };
 
-        // Windows management commands
+        // Windows management commands (Edge-js приоритет)
         case 'minimize_all':
-          const minResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'minimize-all.ps1')], 5000);
-          return minResult.success ? 
-            { ok: true, action: 'minimize_all', details: { message: 'All windows minimized' } } :
-            { ok: false, error: `Failed to minimize windows: ${minResult.error}` };
-
         case 'show_desktop':
-          const showResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'show-desktop.ps1')], 5000);
-          return showResult.success ? 
-            { ok: true, action: 'show_desktop', details: { message: 'Desktop shown' } } :
-            { ok: false, error: `Failed to show desktop: ${showResult.error}` };
-
         case 'lock_screen':
-          const lockResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'lock-screen.ps1')], 5000);
-          return lockResult.success ? 
-            { ok: true, action: 'lock_screen', details: { message: 'Screen locked' } } :
-            { ok: false, error: `Failed to lock screen: ${lockResult.error}` };
-
         case 'empty_recycle_bin':
-          const binResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'empty-recycle-bin.ps1')], 5000);
-          return binResult.success ? 
-            { ok: true, action: 'empty_recycle_bin', details: { message: 'Recycle bin emptied' } } :
-            { ok: false, error: `Failed to empty recycle bin: ${binResult.error}` };
+          if (this.shouldUseEdgeJs(request.command)) {
+            return this.executeEdgeJsCommand(request);
+          } else {
+            return this.executePowerShellCommand(request);
+          }
 
         // Screenshot and screen recording
         case 'screenshot':

@@ -62,6 +62,23 @@ export class Logger {
     }
   }
 
+  warn(message: string, data?: any): void {
+    const entry = {
+      timestamp: new Date().toISOString(),
+      level: 'warn',
+      message,
+      data: data?.message || data
+    };
+    
+    console.warn(`[WARN] ${entry.timestamp}: ${message}`, data);
+    
+    try {
+      fs.appendFileSync(LOG_FILE, JSON.stringify(entry) + '\n', 'utf8');
+    } catch (writeError) {
+      console.error('Failed to write warn log:', writeError);
+    }
+  }
+
   error(message: string, error?: any): void {
     const entry = {
       timestamp: new Date().toISOString(),

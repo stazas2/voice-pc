@@ -86,14 +86,32 @@ const COMMAND_MAPPINGS = {
   'запиши экран': { command: 'screen_record', duration: 10 },
   'запись экрана': { command: 'screen_record', duration: 10 },
   
-  // Windows управление
+  // ═══════════════════════════════════════════════════════════════════
+  // 🚀 WINDOWS УПРАВЛЕНИЕ (Edge-js API - высокая производительность)
+  // ═══════════════════════════════════════════════════════════════════
+  
+  // Минимизация окон (EnumWindows + ShowWindow API)
   'сверни все окна': { command: 'minimize_all' },
   'сверни окна': { command: 'minimize_all' },
+  'закрой все окна': { command: 'minimize_all' },
+  
+  // Показ рабочего стола (FindWindow + ShowWindow API)
   'покажи рабочий стол': { command: 'show_desktop' },
+  'покажи десктоп': { command: 'show_desktop' },
+  'рабочий стол': { command: 'show_desktop' },
+  
+  // Блокировка экрана (LockWorkStation API)
   'заблокируй компьютер': { command: 'lock_screen' },
   'заблокируй экран': { command: 'lock_screen' },
+  'заблокируй пк': { command: 'lock_screen' },
+  'блокировка': { command: 'lock_screen' },
+  
+  // Очистка корзины (SHEmptyRecycleBin API)  
   'очисти корзину': { command: 'empty_recycle_bin' },
   'опустоши корзину': { command: 'empty_recycle_bin' },
+  'удали всё из корзины': { command: 'empty_recycle_bin' },
+  
+  // ═══════════════════════════════════════════════════════════════════
   
   // Дополнительные сайты
   'открой твич': { command: 'open_chrome', url: 'https://twitch.tv' },
