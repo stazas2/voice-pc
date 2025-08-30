@@ -78,9 +78,9 @@ function generateResponse(commandPayload, result, userText) {
       case 'say_ok':
       default:
         if (userText.includes('навык') || userText === '') {
-          return 'Привет! Я управляю твоим компьютером. Попробуй: "блокнот", "пауза", "скриншот" или "загрузка процессора".';
+          return 'Привет! Я готова для управления ПК.';
         } else {
-          return 'OK. Система работает.';
+          return 'OK. Сделала.';
         }
     }
   } else {

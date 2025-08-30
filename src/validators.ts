@@ -11,7 +11,7 @@ export const commandSchema = z.object({
     // System information
     'system_cpu', 'system_memory', 'system_disk', 'system_ip', 'system_info',
     // Windows management
-    'minimize_all', 'show_desktop', 'lock_screen', 'empty_recycle_bin', 'close_window', 'focus_window', 'maximize_window',
+    'minimize_all', 'show_desktop', 'lock_screen', 'empty_recycle_bin', 'volume_mute', 'volume_unmute', 'close_window', 'focus_window', 'maximize_window',
     // Screenshot and recording
     'screenshot', 'screen_record'
   ]),

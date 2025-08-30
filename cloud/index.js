@@ -1,5 +1,5 @@
 // Главная функция для Yandex Cloud Functions
-const { parseUserCommand } = require('./command-parser');
+const { parseUserCommand, saveCommand } = require('./command-parser');
 const { sendToPC } = require('./api-client');
 const { generateResponse } = require('./response-generator');
 
@@ -11,13 +11,16 @@ module.exports.handler = async (event, context) => {
     console.log(`[${sessionId}] User said: "${userText}"`);
 
     try {
-        // Парсим команду пользователя
-        const commandPayload = parseUserCommand(userText);
+        // Парсим команду пользователя с учётом контекста
+        const commandPayload = parseUserCommand(userText, sessionId);
         console.log(`[${sessionId}] Mapped to:`, commandPayload);
 
         // Отправляем на локальный сервер
         const result = await sendToPC(commandPayload);
         console.log(`[${sessionId}] PC response:`, result);
+
+        // Сохраняем команду в контекст
+        saveCommand(sessionId, userText, commandPayload, result);
 
         // Генерируем ответ для Алисы
         const responseText = generateResponse(commandPayload, result, userText);

@@ -33,6 +33,8 @@ export class WindowsCommands {
       'minimize_all', 
       'show_desktop',
       'empty_recycle_bin',
+      'volume_mute',
+      'volume_unmute',
       'volume_set',
       'close_window',
       'focus_window',
@@ -62,6 +64,10 @@ export class WindowsCommands {
           break;
         case 'empty_recycle_bin':
           result = await WindowsCommandsEdge.emptyRecycleBin();
+          break;
+        case 'volume_mute':
+        case 'volume_unmute':
+          result = await WindowsCommandsEdge.volumeMute();
           break;
         case 'volume_set':
           result = await WindowsCommandsEdge.volumeSet(request.level || 50);
@@ -480,6 +486,9 @@ export class WindowsCommands {
         case 'show_desktop':
         case 'lock_screen':
         case 'empty_recycle_bin':
+        case 'volume_mute':
+        case 'volume_unmute':
+          return this.executeEdgeJsCommand(request);
         case 'volume_set':
         case 'close_window':
         case 'focus_window':

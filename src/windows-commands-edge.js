@@ -38,6 +38,15 @@ class WindowsCommandsEdge {
         }
     }
 
+    static async volumeMute() {
+        try {
+            const result = await windowsApi.volumeMute(null);
+            return result;
+        } catch (error) {
+            return { success: false, error: error.message, method: "edge-js" };
+        }
+    }
+
     static async volumeSet(level) {
         try {
             const result = await windowsApi.volumeSet(level);

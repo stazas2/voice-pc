@@ -157,6 +157,55 @@ const emptyRecycleBinCs = edge.func(`
     }
 `);
 
+const volumeMuteCs = edge.func(`
+    using System;
+    using System.Runtime.InteropServices;
+    using System.Threading.Tasks;
+    
+    public class Startup
+    {
+        [DllImport("user32.dll")]
+        public static extern IntPtr SendMessage(IntPtr hWnd, uint Msg, UIntPtr wParam, IntPtr lParam);
+        
+        [DllImport("user32.dll")]
+        public static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
+        
+        const uint WM_APPCOMMAND = 0x319;
+        const uint APPCOMMAND_VOLUME_MUTE = 8;
+        
+        private static IntPtr MakeLParam(uint loWord, uint hiWord)
+        {
+            return new IntPtr((hiWord << 16) | (loWord & 0xFFFF));
+        }
+        
+        public async Task<object> Invoke(object input)
+        {
+            try 
+            {
+                IntPtr hWnd = FindWindow("Shell_TrayWnd", null);
+                if (hWnd == IntPtr.Zero)
+                    hWnd = new IntPtr(-1); // HWND_BROADCAST
+                
+                SendMessage(hWnd, WM_APPCOMMAND, UIntPtr.Zero, MakeLParam(0, APPCOMMAND_VOLUME_MUTE));
+                
+                return new { 
+                    success = true, 
+                    action = "volume_mute",
+                    method = "edge-js" 
+                };
+            }
+            catch (Exception ex)
+            {
+                return new { 
+                    success = false, 
+                    error = ex.Message, 
+                    method = "edge-js" 
+                };
+            }
+        }
+    }
+`);
+
 const volumeSetCs = edge.func(`
     using System;
     using System.Runtime.InteropServices;
@@ -195,10 +244,12 @@ const volumeSetCs = edge.func(`
                 if (hWnd == IntPtr.Zero)
                     hWnd = new IntPtr(-1); // HWND_BROADCAST
                 
-                // Простой алгоритм: сбросить в 0, затем поднять до нужного уровня
-                // Сначала mute чтобы сбросить
-                SendMessage(hWnd, WM_APPCOMMAND, UIntPtr.Zero, MakeLParam(0, APPCOMMAND_VOLUME_MUTE));
-                SendMessage(hWnd, WM_APPCOMMAND, UIntPtr.Zero, MakeLParam(0, APPCOMMAND_VOLUME_MUTE));
+                // Точный алгоритм: сначала понизить до 0, затем поднять до нужного уровня
+                // Гарантированно сбрасываем в 0 (50 шагов = 100% вниз)
+                for (int i = 0; i < 50; i++)
+                {
+                    SendMessage(hWnd, WM_APPCOMMAND, UIntPtr.Zero, MakeLParam(0, APPCOMMAND_VOLUME_DOWN));
+                }
                 
                 // Поднимаем до нужного уровня (каждый шаг ~2%)
                 int steps = targetLevel / 2;
@@ -507,6 +558,7 @@ module.exports = {
     showDesktop: promisifyEdge(showDesktopCs),
     minimizeAll: promisifyEdge(minimizeAllCs),
     emptyRecycleBin: promisifyEdge(emptyRecycleBinCs),
+    volumeMute: promisifyEdge(volumeMuteCs),
     volumeSet: promisifyEdge(volumeSetCs),
     closeWindow: promisifyEdge(closeWindowCs),
     focusWindow: promisifyEdge(focusWindowCs),
