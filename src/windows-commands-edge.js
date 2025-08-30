@@ -56,6 +56,24 @@ class WindowsCommandsEdge {
         }
     }
 
+    static async focusWindow(processName) {
+        try {
+            const result = await windowsApi.focusWindow(processName);
+            return result;
+        } catch (error) {
+            return { success: false, error: error.message, method: "edge-js" };
+        }
+    }
+
+    static async maximizeWindow(processName) {
+        try {
+            const result = await windowsApi.maximizeWindow(processName);
+            return result;
+        } catch (error) {
+            return { success: false, error: error.message, method: "edge-js" };
+        }
+    }
+
     // Тест edge-js доступности
     static async testEdgeJs() {
         try {

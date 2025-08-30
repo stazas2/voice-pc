@@ -308,11 +308,207 @@ const closeWindowCs = edge.func(`
     }
 `);
 
+const focusWindowCs = edge.func(`
+    using System;
+    using System.Runtime.InteropServices;
+    using System.Threading.Tasks;
+    using System.Diagnostics;
+    
+    public class Startup
+    {
+        [DllImport("user32.dll")]
+        public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+        
+        [DllImport("user32.dll")]
+        public static extern bool IsWindowVisible(IntPtr hWnd);
+        
+        [DllImport("user32.dll")]
+        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+        
+        [DllImport("user32.dll")]
+        public static extern bool SetForegroundWindow(IntPtr hWnd);
+        
+        [DllImport("user32.dll")]
+        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        
+        [DllImport("user32.dll")]
+        public static extern bool IsIconic(IntPtr hWnd);
+        
+        const int SW_RESTORE = 9;
+        const int SW_SHOW = 5;
+        
+        public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+        
+        public async Task<object> Invoke(object input)
+        {
+            try 
+            {
+                string processName = input != null ? input.ToString().ToLower() : "";
+                if (string.IsNullOrEmpty(processName))
+                {
+                    return new { success = false, error = "Process name required", method = "edge-js" };
+                }
+                
+                int focusedCount = 0;
+                IntPtr targetWindow = IntPtr.Zero;
+                
+                EnumWindows((hWnd, lParam) => {
+                    if (!IsWindowVisible(hWnd)) return true;
+                    
+                    uint processId;
+                    GetWindowThreadProcessId(hWnd, out processId);
+                    
+                    try
+                    {
+                        Process process = Process.GetProcessById((int)processId);
+                        string currentName = process.ProcessName.ToLower();
+                        
+                        if (currentName.Contains(processName))
+                        {
+                            targetWindow = hWnd;
+                            
+                            // Restore if minimized
+                            if (IsIconic(hWnd))
+                            {
+                                ShowWindow(hWnd, SW_RESTORE);
+                            }
+                            else
+                            {
+                                ShowWindow(hWnd, SW_SHOW);
+                            }
+                            
+                            // Bring to foreground
+                            if (SetForegroundWindow(hWnd))
+                            {
+                                focusedCount++;
+                            }
+                            
+                            return false; // Stop after first match
+                        }
+                    }
+                    catch
+                    {
+                        // Skip access errors
+                    }
+                    
+                    return true;
+                }, IntPtr.Zero);
+                
+                return new { 
+                    success = focusedCount > 0, 
+                    processName = processName,
+                    focusedCount = focusedCount,
+                    windowHandle = targetWindow.ToString(),
+                    method = "edge-js" 
+                };
+            }
+            catch (Exception ex)
+            {
+                return new { 
+                    success = false, 
+                    error = ex.Message, 
+                    method = "edge-js" 
+                };
+            }
+        }
+    }
+`);
+
+const maximizeWindowCs = edge.func(`
+    using System;
+    using System.Runtime.InteropServices;
+    using System.Threading.Tasks;
+    using System.Diagnostics;
+    
+    public class Startup
+    {
+        [DllImport("user32.dll")]
+        public static extern bool EnumWindows(EnumWindowsProc lpEnumFunc, IntPtr lParam);
+        
+        [DllImport("user32.dll")]
+        public static extern bool IsWindowVisible(IntPtr hWnd);
+        
+        [DllImport("user32.dll")]
+        public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint processId);
+        
+        [DllImport("user32.dll")]
+        public static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+        
+        const int SW_MAXIMIZE = 3;
+        
+        public delegate bool EnumWindowsProc(IntPtr hWnd, IntPtr lParam);
+        
+        public async Task<object> Invoke(object input)
+        {
+            try 
+            {
+                string processName = input != null ? input.ToString().ToLower() : "";
+                if (string.IsNullOrEmpty(processName))
+                {
+                    return new { success = false, error = "Process name required", method = "edge-js" };
+                }
+                
+                int maximizedCount = 0;
+                IntPtr targetWindow = IntPtr.Zero;
+                
+                EnumWindows((hWnd, lParam) => {
+                    if (!IsWindowVisible(hWnd)) return true;
+                    
+                    uint processId;
+                    GetWindowThreadProcessId(hWnd, out processId);
+                    
+                    try
+                    {
+                        Process process = Process.GetProcessById((int)processId);
+                        string currentName = process.ProcessName.ToLower();
+                        
+                        if (currentName.Contains(processName))
+                        {
+                            targetWindow = hWnd;
+                            
+                            if (ShowWindow(hWnd, SW_MAXIMIZE))
+                            {
+                                maximizedCount++;
+                            }
+                            
+                            return false;
+                        }
+                    }
+                    catch
+                    {
+                        // Skip access errors
+                    }
+                    
+                    return true;
+                }, IntPtr.Zero);
+                
+                return new { 
+                    success = maximizedCount > 0, 
+                    processName = processName,
+                    maximizedCount = maximizedCount,
+                    windowHandle = targetWindow.ToString(),
+                    method = "edge-js" 
+                };
+            }
+            catch (Exception ex)
+            {
+                return new { 
+                    success = false, 
+                    error = ex.Message, 
+                    method = "edge-js" 
+                };
+            }
+        }
+    }
+`);
+
 module.exports = {
     lockScreen: promisifyEdge(lockScreenCs),
     showDesktop: promisifyEdge(showDesktopCs),
     minimizeAll: promisifyEdge(minimizeAllCs),
     emptyRecycleBin: promisifyEdge(emptyRecycleBinCs),
     volumeSet: promisifyEdge(volumeSetCs),
-    closeWindow: promisifyEdge(closeWindowCs)
+    closeWindow: promisifyEdge(closeWindowCs),
+    focusWindow: promisifyEdge(focusWindowCs),
+    maximizeWindow: promisifyEdge(maximizeWindowCs)
 };

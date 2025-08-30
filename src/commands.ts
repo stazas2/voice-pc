@@ -34,7 +34,9 @@ export class WindowsCommands {
       'show_desktop',
       'empty_recycle_bin',
       'volume_set',
-      'close_window'
+      'close_window',
+      'focus_window',
+      'maximize_window'
     ];
     return edgeJsAvailable && edgeJsCommands.includes(command);
   }
@@ -66,6 +68,12 @@ export class WindowsCommands {
           break;
         case 'close_window':
           result = await WindowsCommandsEdge.closeWindow(request.processName || 'unknown');
+          break;
+        case 'focus_window':
+          result = await WindowsCommandsEdge.focusWindow(request.processName || 'unknown');
+          break;
+        case 'maximize_window':
+          result = await WindowsCommandsEdge.maximizeWindow(request.processName || 'unknown');
           break;
         default:
           throw new Error(`Edge-js command not implemented: ${request.command}`);
@@ -122,6 +130,14 @@ export class WindowsCommands {
         case 'close_window':
           const processName = request.processName || 'unknown';
           result = await this.executeCommand('powershell', ['-Command', `Get-Process -Name "*${processName}*" -ErrorAction SilentlyContinue | ForEach-Object { $_.CloseMainWindow() }; Start-Sleep -Milliseconds 500; Get-Process -Name "*${processName}*" -ErrorAction SilentlyContinue | Stop-Process -Force`], 5000);
+          break;
+        case 'focus_window':
+          const focusProcessName = request.processName || 'unknown';
+          result = await this.executeCommand('powershell', ['-Command', `Add-Type -AssemblyName Microsoft.VisualBasic; Get-Process -Name "*${focusProcessName}*" -ErrorAction SilentlyContinue | ForEach-Object { [Microsoft.VisualBasic.Interaction]::AppActivate($_.Id) }`], 5000);
+          break;
+        case 'maximize_window':
+          const maxProcessName = request.processName || 'unknown';
+          result = await this.executeCommand('powershell', ['-Command', `Add-Type -AssemblyName System.Windows.Forms; Get-Process -Name "*${maxProcessName}*" -ErrorAction SilentlyContinue | ForEach-Object { [System.Windows.Forms.SendKeys]::SendWait("^{UP}") }`], 5000);
           break;
         default:
           throw new Error(`PowerShell fallback not available for: ${request.command}`);
@@ -466,6 +482,13 @@ export class WindowsCommands {
         case 'empty_recycle_bin':
         case 'volume_set':
         case 'close_window':
+        case 'focus_window':
+          if (this.shouldUseEdgeJs(request.command)) {
+            return this.executeEdgeJsCommand(request);
+          } else {
+            return this.executePowerShellCommand(request);
+          }
+        case 'maximize_window':
           if (this.shouldUseEdgeJs(request.command)) {
             return this.executeEdgeJsCommand(request);
           } else {
