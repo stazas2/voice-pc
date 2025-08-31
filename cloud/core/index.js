@@ -1,15 +1,13 @@
 // Главная функция для Yandex Cloud Functions
-const { parseUserCommand, saveCommand } = require('./parsers/command-parser');
-const { sendToPC } = require('./core/api-client');
-const { generateResponse } = require('./core/response-generator');
-const logger = require('./utils/logger');
-const validator = require('./utils/validator');
-const rateLimiter = require('./utils/rate-limiter');
+const { parseUserCommand, saveCommand } = require('../parsers/command-parser');
+const { sendToPC } = require('./api-client');
+const { generateResponse } = require('./response-generator');
+const logger = require('../utils/logger');
+const validator = require('../utils/validator');
+const rateLimiter = require('../utils/rate-limiter');
 
 module.exports.handler = async (event, context) => {
     const startTime = Date.now();
-    let sessionId = 'unknown';  // Объявляем заранее для использования в catch
-    let userId = 'unknown';
     
     try {
         // Валидация запроса
@@ -27,8 +25,8 @@ module.exports.handler = async (event, context) => {
 
         const req = validation.data;
         const userText = req.request?.command || '';
-        sessionId = req.session?.session_id || 'unknown';  // Присваиваем значение
-        userId = req.session?.user_id || 'unknown';
+        const sessionId = req.session?.session_id || 'unknown';
+        const userId = req.session?.user_id || 'unknown';
 
         // Rate limiting
         const limitCheck = rateLimiter.checkLimit(userId);
@@ -89,21 +87,12 @@ module.exports.handler = async (event, context) => {
         };
 
     } catch (error) {
-        logger.error('Handler error occurred', { 
-            sessionId, 
-            userId, 
-            error: error.message, 
-            stack: error.stack 
-        });
-
-        // Случайный ответ об ошибке из конфигурации
-        const config = require('./config/config');
-        const errors = config.responses.error;
-        const errorText = errors[Math.floor(Math.random() * errors.length)];
+        console.error(`[${sessionId}] Error:`, error);
 
         return {
             response: {
-                text: errorText,
+                text: 'Сервер недоступен. Проверьте подключение к компьютеру.',
+                tts: 'Сервер недоступен.',
                 end_session: false
             },
             version: '1.0'

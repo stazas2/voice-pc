@@ -1,4 +1,6 @@
 // Генерация ответов для Алисы
+const config = require('../config/config');
+
 function generateResponse(commandPayload, result, userText) {
   if (result.ok) {
     switch (commandPayload.command) {
@@ -78,13 +80,19 @@ function generateResponse(commandPayload, result, userText) {
       case 'say_ok':
       default:
         if (userText.includes('навык') || userText === '') {
-          return 'Привет! Я готова для управления ПК.';
+          // Случайный приветственный ответ
+          const welcomes = config.responses.welcome;
+          return welcomes[Math.floor(Math.random() * welcomes.length)];
         } else {
-          return 'OK. Сделала.';
+          // Случайный ответ об успехе
+          const successes = config.responses.success;
+          return successes[Math.floor(Math.random() * successes.length)];
         }
     }
   } else {
-    return `Ошибка: ${result.error}`;
+    // Случайный ответ об ошибке
+    const errors = config.responses.error;
+    return errors[Math.floor(Math.random() * errors.length)];
   }
 }
 

@@ -1,5 +1,5 @@
 // Парсинг команд пользователя
-const { COMMAND_MAPPINGS } = require('./command-mappings');
+const { COMMAND_MAPPINGS } = require('../config/command-mappings');
 const { smartParse } = require('./smart-parser');
 const { saveCommandToContext } = require('./context-memory');
 

@@ -1,4 +1,4 @@
-const { COMMAND_MAPPINGS } = require('./command-mappings');
+const { COMMAND_MAPPINGS } = require('../config/command-mappings');
 const { parseContextCommand } = require('./context-memory');
 const { findBestMatch } = require('./fuzzy-matcher');
 

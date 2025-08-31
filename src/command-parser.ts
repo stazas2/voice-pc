@@ -20,8 +20,8 @@ export class CommandMappingParser {
   private backupPath: string;
 
   constructor() {
-    this.mappingsPath = path.join(__dirname, '..', 'cloud', 'command-mappings.js');
-    this.backupPath = path.join(__dirname, '..', 'cloud', 'command-mappings.backup.js');
+    this.mappingsPath = path.join(__dirname, '..', 'cloud', 'config', 'command-mappings.js');
+    this.backupPath = path.join(__dirname, '..', 'cloud', 'config', 'command-mappings.backup.js');
   }
 
   // Parse command-mappings.js file into structured format
