@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import * as dotenv from 'dotenv';
+import * as path from 'path';
 import { CommandRequest, ApiResponse, HealthResponse } from './types';
 import { validateCommand } from './validators';
 import { logger } from './logger';
@@ -9,8 +10,11 @@ import { windowsCommands } from './commands';
 import { trayManager } from './tray-simple';
 import { dashboardManager } from './dashboard';
 
-// Load environment variables
-dotenv.config();
+// Load environment variables from project root
+const envPath = 'C:\\Users\\malys\\Desktop\\Alisa\\voice-pc\\.env';
+console.log('🔍 Loading .env from:', envPath);
+const result = dotenv.config({ path: envPath });
+console.log('🔍 dotenv result:', result.error ? result.error.message : 'success');
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;

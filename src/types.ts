@@ -10,12 +10,25 @@ export interface CommandRequest {
     // Windows management
     'minimize_all' | 'show_desktop' | 'lock_screen' | 'empty_recycle_bin' | 'volume_mute' | 'volume_unmute' | 'close_window' | 'focus_window' | 'maximize_window' |
     // Screenshot and recording
-    'screenshot' | 'screen_record';
+    'screenshot' | 'screen_record' |
+    // Notion integration
+    'notion_today_tasks' | 'notion_upcoming_events' | 'notion_create_task' |
+    // Chrome control
+    'chrome_new_tab' | 'chrome_close_tab' | 'chrome_refresh' | 'chrome_fullscreen_media' |
+    // Chrome CDP advanced
+    'chrome_scroll_down' | 'chrome_scroll_up' | 'chrome_click_link' | 'chrome_find_text' |
+    // Profile system
+    'activate_profile' | 'tile_windows';
   url?: string;
   alias?: string;
   duration?: number; // for screen recording
   level?: number; // for volume_set (0-100)
   processName?: string; // for close_window
+  title?: string; // for notion_create_task
+  dueDate?: string; // for notion_create_task
+  text?: string; // for chrome_find_text, chrome_click_link
+  profileName?: string; // for activate_profile
+  layout?: 'split' | 'quad' | 'triple'; // for tile_windows
 }
 
 export interface ApiResponse {

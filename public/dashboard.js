@@ -2,6 +2,7 @@ class VoicePCDashboard {
     constructor() {
         this.ws = null;
         this.isConnected = false;
+        this.authToken = 'VoicePC_SecureToken_2024_abcd1234efgh5678'; // Default token
         this.stats = {
             totalCommands: 0,
             successfulCommands: 0,
@@ -97,6 +98,7 @@ class VoicePCDashboard {
             }
             
             this.updateUI();
+            // this.loadSystemInfo();
         } catch (error) {
             console.error('Error loading initial data:', error);
         }
@@ -361,6 +363,12 @@ class VoicePCDashboard {
                                    placeholder="Parameters (JSON)">
                         </div>
                         <div>
+                            <button class="btn-play" id="play-${category.name}-${i}" 
+                                   onclick="testCommandFromRow('${this.escapeHtml(category.name)}', ${i})">
+                                ▶️ Play
+                            </button>
+                        </div>
+                        <div>
                             <button class="btn btn-small btn-danger" onclick="deleteCommand('${this.escapeHtml(category.name)}', ${i})">
                                 🗑️
                             </button>
@@ -477,6 +485,123 @@ class VoicePCDashboard {
                 document.getElementById('dashboard-url').value = `http://${currentHost}:${newPort}/dashboard`;
             });
         }
+    }
+
+    async loadSystemInfo() {
+        try {
+            // Load CPU info
+            const cpuResponse = await fetch('/command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-ALICE-TOKEN': this.authToken
+                },
+                body: JSON.stringify({ command: 'system_cpu' })
+            });
+            const cpuData = await cpuResponse.json();
+            
+            if (cpuData.ok && cpuData.data) {
+                document.getElementById('system-cpu').innerHTML = `${cpuData.data.usage}%`;
+            } else {
+                document.getElementById('system-cpu').innerHTML = 'N/A';
+            }
+
+            // Load Memory info  
+            const memResponse = await fetch('/command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-ALICE-TOKEN': this.authToken
+                },
+                body: JSON.stringify({ command: 'system_memory' })
+            });
+            const memData = await memResponse.json();
+            
+            if (memData.ok && memData.data) {
+                const usedGB = (memData.data.used / (1024 * 1024 * 1024)).toFixed(1);
+                const totalGB = (memData.data.total / (1024 * 1024 * 1024)).toFixed(1);
+                document.getElementById('system-memory').innerHTML = `${usedGB}/${totalGB}GB`;
+            } else {
+                document.getElementById('system-memory').innerHTML = 'N/A';
+            }
+
+            // Update header system info
+            const systemInfo = `Port: ${window.location.port || '3000'} | ${window.location.hostname}`;
+            document.getElementById('system-info').textContent = systemInfo;
+
+        } catch (error) {
+            console.error('Error loading system info:', error);
+            document.getElementById('system-cpu').innerHTML = 'Error';
+            document.getElementById('system-memory').innerHTML = 'Error';
+        }
+    }
+
+    async testCommand(command, params = {}) {
+        try {
+            const payload = { command, ...params };
+            
+            // Show loading state
+            const buttons = document.querySelectorAll('.quick-action-btn');
+            const clickedButton = Array.from(buttons).find(btn => btn.onclick.toString().includes(command));
+            if (clickedButton) {
+                const originalText = clickedButton.innerHTML;
+                clickedButton.innerHTML = '⏳ Testing...';
+                clickedButton.disabled = true;
+                
+                setTimeout(() => {
+                    clickedButton.innerHTML = originalText;
+                    clickedButton.disabled = false;
+                }, 3000);
+            }
+
+            const response = await fetch('/command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-ALICE-TOKEN': this.authToken
+                },
+                body: JSON.stringify(payload)
+            });
+            
+            const result = await response.json();
+            
+            // Show result notification
+            this.showNotification(
+                result.ok ? '✅ Command executed successfully!' : `❌ Command failed: ${result.error}`,
+                result.ok ? 'success' : 'error'
+            );
+            
+        } catch (error) {
+            console.error('Error testing command:', error);
+            this.showNotification('❌ Network error occurred', 'error');
+        }
+    }
+
+    showNotification(message, type = 'info') {
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: ${type === 'success' ? 'var(--accent-green)' : type === 'error' ? 'var(--accent-red)' : 'var(--accent-blue)'};
+            color: white;
+            padding: 12px 16px;
+            border-radius: 8px;
+            font-size: 14px;
+            z-index: 10000;
+            max-width: 300px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        `;
+        notification.textContent = message;
+        
+        document.body.appendChild(notification);
+        
+        // Remove after 4 seconds
+        setTimeout(() => {
+            if (notification.parentNode) {
+                notification.parentNode.removeChild(notification);
+            }
+        }, 4000);
     }
 }
 
@@ -679,6 +804,73 @@ function exportLogs() {
 
 function editCommandsFile() {
     alert('This will open the command mappings file in your default editor (coming soon)');
+}
+
+// Global function to test commands from dashboard
+function testCommand(command, params = {}) {
+    if (window.dashboard) {
+        window.dashboard.testCommand(command, params);
+    } else {
+        console.error('Dashboard not initialized');
+    }
+}
+
+// Global function to test command from table row
+function testCommandFromRow(categoryName, commandIndex) {
+    if (!window.dashboard || !window.dashboard.commandsData) {
+        alert('Commands not loaded yet. Please wait or reload the page.');
+        return;
+    }
+    
+    const category = window.dashboard.commandsData.categories.find(cat => cat.name === categoryName);
+    if (!category || !category.commands[commandIndex]) {
+        alert('Command not found.');
+        return;
+    }
+    
+    const cmd = category.commands[commandIndex];
+    const playButton = document.getElementById(`play-${categoryName}-${commandIndex}`);
+    
+    if (!cmd.command) {
+        alert('No command specified. Please fill in the API command field.');
+        return;
+    }
+    
+    // Show loading state
+    if (playButton) {
+        playButton.innerHTML = '⏳ Running...';
+        playButton.disabled = true;
+    }
+    
+    // Parse parameters
+    let params = {};
+    if (cmd.parameters) {
+        try {
+            params = typeof cmd.parameters === 'string' ? JSON.parse(cmd.parameters) : cmd.parameters;
+        } catch (error) {
+            alert('Invalid parameters JSON format.');
+            if (playButton) {
+                playButton.innerHTML = '▶️ Play';
+                playButton.disabled = false;
+            }
+            return;
+        }
+    }
+    
+    // Execute command
+    window.dashboard.testCommand(cmd.command, params).then(() => {
+        // Reset button state
+        if (playButton) {
+            playButton.innerHTML = '▶️ Play';
+            playButton.disabled = false;
+        }
+    }).catch((error) => {
+        // Reset button state on error
+        if (playButton) {
+            playButton.innerHTML = '▶️ Play';
+            playButton.disabled = false;
+        }
+    });
 }
 
 // Initialize dashboard when page loads

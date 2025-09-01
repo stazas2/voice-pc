@@ -3,7 +3,7 @@ import { RateLimitEntry } from './types';
 import { logger } from './logger';
 
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
-const MAX_REQUESTS_PER_WINDOW = 10;
+const MAX_REQUESTS_PER_WINDOW = 50; // Increased for dashboard usage
 
 export class SecurityManager {
   private rateLimits: Map<string, RateLimitEntry> = new Map();
@@ -31,6 +31,13 @@ export class SecurityManager {
 
   rateLimitMiddleware = (req: Request, res: Response, next: NextFunction): void => {
     const ip = this.getClientIp(req);
+    
+    // Skip rate limiting for localhost/dashboard
+    if (ip === '127.0.0.1' || ip === '::1' || ip === 'unknown') {
+      next();
+      return;
+    }
+    
     const now = Date.now();
     
     let entry = this.rateLimits.get(ip);

@@ -54,7 +54,11 @@
       "Bash(tskill:*)",
       "Bash(call:*)",
       "Bash(start http://localhost:3002/dashboard)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Bash(PORT=3000 node dist/server.js)",
+      "Bash(start chrome)",
+      "Bash(tasklist:*)",
+      "Bash(start start-voice-pc-final.bat:*)"
     ],
     "deny": [],
     "ask": []

@@ -53,7 +53,23 @@ class Validator {
             'empty_recycle_bin',
             'close_window',
             'focus_window',
-            'maximize_window'
+            'maximize_window',
+            // Notion integration
+            'notion_today_tasks',
+            'notion_upcoming_events', 
+            'notion_create_task',
+            // Chrome control
+            'chrome_new_tab',
+            'chrome_close_tab',
+            'chrome_refresh',
+            'chrome_fullscreen_media',
+            'chrome_scroll_down',
+            'chrome_scroll_up',
+            'chrome_click_link',
+            'chrome_find_text',
+            // Profile system
+            'activate_profile',
+            'tile_windows'
         ];
     }
     

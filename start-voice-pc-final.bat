@@ -14,7 +14,8 @@ echo.
 REM Clean up previous processes (избегаем убийство Claude Code)
 echo [0/3] Cleaning up previous processes...
 powershell -Command "Get-Process cloudflared -ErrorAction SilentlyContinue | Stop-Process -Force" 2>nul
-taskkill /F /IM "node.exe" /FI "WINDOWTITLE eq Voice PC Server*" 2>nul
+REM Kill any node processes using port 3000
+powershell -Command "Get-NetTCPConnection -LocalPort 3000 -ErrorAction SilentlyContinue | ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }" 2>nul
 timeout /t 1 /nobreak >nul
 
 REM Build and start

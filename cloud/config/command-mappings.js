@@ -214,6 +214,68 @@ const COMMAND_MAPPINGS = {
   'открой вк': { command: 'open_chrome', url: 'https://vk.com' },
   'открой телеграм': { command: 'open_chrome', url: 'https://web.telegram.org' },
   
+  // Notion интеграция
+  'что у меня на сегодня': { command: 'notion_today_tasks' },
+  'какие задачи на сегодня': { command: 'notion_today_tasks' },
+  'мои задачи': { command: 'notion_today_tasks' },
+  'планы на сегодня': { command: 'notion_today_tasks' },
+  'что запланировано на сегодня': { command: 'notion_today_tasks' },
+  'список дел': { command: 'notion_today_tasks' },
+  
+  'что у меня на неделе': { command: 'notion_upcoming_events' },
+  'события на неделе': { command: 'notion_upcoming_events' },
+  'календарь на неделю': { command: 'notion_upcoming_events' },
+  'мои мероприятия': { command: 'notion_upcoming_events' },
+  'что запланировано': { command: 'notion_upcoming_events' },
+  
+  // Chrome управление (SendKeys)
+  'новая вкладка': { command: 'chrome_new_tab' },
+  'открой новую вкладку': { command: 'chrome_new_tab' },
+  'создай вкладку': { command: 'chrome_new_tab' },
+  'закрой вкладку': { command: 'chrome_close_tab' },
+  'закрой эту вкладку': { command: 'chrome_close_tab' },
+  'убей вкладку': { command: 'chrome_close_tab' },
+  'обнови страницу': { command: 'chrome_refresh' },
+  'обнови вкладку': { command: 'chrome_refresh' },
+  'перезагрузи страницу': { command: 'chrome_refresh' },
+  'обновить': { command: 'chrome_refresh' },
+  'рефреш': { command: 'chrome_refresh' },
+  'полный экран видео': { command: 'chrome_fullscreen_media' },
+  'полноэкранный режим': { command: 'chrome_fullscreen_media' },
+  'развернуть видео': { command: 'chrome_fullscreen_media' },
+  'фуллскрин': { command: 'chrome_fullscreen_media' },
+  'начать проигрывать в полном экране': { command: 'chrome_fullscreen_media' },
+  
+  // Chrome продвинутое управление (CDP)
+  'скролл вниз': { command: 'chrome_scroll_down' },
+  'прокрути вниз': { command: 'chrome_scroll_down' },
+  'листай вниз': { command: 'chrome_scroll_down' },
+  'скролл вверх': { command: 'chrome_scroll_up' },
+  'прокрути вверх': { command: 'chrome_scroll_up' },
+  'листай вверх': { command: 'chrome_scroll_up' },
+  
+  // Профильная система
+  'рабочий профиль': { command: 'activate_profile', profileName: 'work' },
+  'активируй рабочий профиль': { command: 'activate_profile', profileName: 'work' },
+  'режим работы': { command: 'activate_profile', profileName: 'work' },
+  'рабочий режим': { command: 'activate_profile', profileName: 'work' },
+  
+  'чилловый профиль': { command: 'activate_profile', profileName: 'chill' },
+  'активируй чилловый профиль': { command: 'activate_profile', profileName: 'chill' },
+  'режим отдыха': { command: 'activate_profile', profileName: 'chill' },
+  'отдыхаю': { command: 'activate_profile', profileName: 'chill' },
+  
+  'медиа профиль': { command: 'activate_profile', profileName: 'media' },
+  'музыкальный режим': { command: 'activate_profile', profileName: 'media' },
+  'режим музыки': { command: 'activate_profile', profileName: 'media' },
+  
+  'организуй окна': { command: 'tile_windows', layout: 'split' },
+  'раздели экран': { command: 'tile_windows', layout: 'split' },
+  'окна пополам': { command: 'tile_windows', layout: 'split' },
+  'тайл окна': { command: 'tile_windows', layout: 'split' },
+  'четыре окна': { command: 'tile_windows', layout: 'quad' },
+  'квадрат окон': { command: 'tile_windows', layout: 'quad' },
+  
   // Fallback команды
   'тест': { command: 'say_ok' },
   'проверка': { command: 'say_ok' },

@@ -1,98 +1,190 @@
-// Генерация ответов для Алисы
+// Генерация ответов для Алисы с эмоциями
 const config = require('../config/config');
+
+// Утилита для получения случайного ответа из массива
+function getRandomResponse(responses) {
+  return responses[Math.floor(Math.random() * responses.length)];
+}
+
+// Утилита для получения специализированного ответа по категории
+function getCategoryResponse(category, fallback = 'success') {
+  const categoryResponses = config.responses[category];
+  if (categoryResponses && categoryResponses.success) {
+    return getRandomResponse(categoryResponses.success);
+  }
+  return getRandomResponse(config.responses[fallback]);
+}
 
 function generateResponse(commandPayload, result, userText) {
   if (result.ok) {
     switch (commandPayload.command) {
+      // Базовые команды с эмоциональными ответами
       case 'open_notepad':
-        return 'Блокнот открыт.';
+        return '📝 ' + getRandomResponse([
+          'Блокнот открыт! Готов к записям!',
+          'Открываю блокнот! Время для творчества!',
+          'Блокнот запущен! Записывайте идеи!'
+        ]);
         
       case 'open_chrome':
-        return `Открываю ${commandPayload.url?.replace('https://', '').split('/')[0] || 'браузер'}.`;
+        const siteName = commandPayload.url?.replace('https://', '').split('/')[0] || 'браузер';
+        return '🌐 ' + getRandomResponse([
+          `Открываю ${siteName}! Приятного сёрфинга!`,
+          `Запускаю ${siteName}! Интернет ждёт!`,
+          `${siteName} загружается! В путь по сети!`
+        ]);
         
       case 'open_app':
-        return `Запускаю ${commandPayload.alias || 'приложение'}.`;
+        const appName = commandPayload.alias || 'приложение';
+        return '🚀 ' + getRandomResponse([
+          `Запускаю ${appName}! Работаем!`,
+          `Открываю ${appName}! В бой!`,
+          `${appName} стартует! Удачной работы!`
+        ]);
         
       case 'shutdown_now':
-        return 'Компьютер выключается.';
+        return '💤 ' + getRandomResponse([
+          'Компьютер выключается! Спокойной ночи!',
+          'Отправляю компьютер спать! До встречи!',
+          'Выключение запущено! Хороших снов!'
+        ]);
         
       case 'sleep_now':
-        return 'Компьютер переходит в спящий режим.';
+        return '😴 ' + getRandomResponse([
+          'Компьютер в спящий режим! Отдыхаем!',
+          'Перевожу в сон! Энергия экономится!',
+          'Спящий режим активирован! Сны приятные!'
+        ]);
         
-      // Медиа команды
+      // Медиа команды с музыкальными эмоциями
       case 'media_pause':
-        return 'Ставлю на паузу.';
       case 'media_play':
-        return 'Продолжаю воспроизведение.';
       case 'media_next':
-        return 'Переключаю на следующий трек.';
       case 'media_previous':
-        return 'Переключаю на предыдущий трек.';
       case 'media_stop':
-        return 'Останавливаю музыку.';
       case 'volume_up':
-        return 'Увеличиваю громкость.';
       case 'volume_down':
-        return 'Уменьшаю громкость.';
       case 'volume_mute':
-        return 'Выключаю звук.';
       case 'volume_unmute':
-        return 'Включаю звук.';
+      case 'volume_set':
+        return getCategoryResponse('media');
         
       // Файловые операции
       case 'open_downloads':
-        return 'Открываю папку загрузок.';
+        return '📁 ' + getRandomResponse([
+          'Открываю загрузки! Посмотрим, что скачали!',
+          'Папка загрузок готова! Ищите файлы!',
+          'Загрузки открыты! Всё на месте!'
+        ]);
       case 'open_documents':
-        return 'Открываю папку документов.';
+        return '📄 ' + getRandomResponse([
+          'Документы открыты! Творите и работайте!',
+          'Папка документов готова! Время работать!',
+          'Открываю документы! Всё организовано!'
+        ]);
       case 'open_desktop':
-        return 'Показываю рабочий стол.';
+        return '🖥️ ' + getRandomResponse([
+          'Рабочий стол показан! Чистота и порядок!',
+          'Десктоп готов! Всё на своих местах!',
+          'Рабочий стол открыт! Красота!'
+        ]);
       case 'open_latest_download':
-        return 'Открываю последний скачанный файл.';
+        return '⬇️ ' + getRandomResponse([
+          'Открываю последний файл! Что скачали?',
+          'Последняя загрузка готова! Смотрим!',
+          'Свежий файл открывается! Интересно!'
+        ]);
         
-      // Системная информация
+      // Системная информация с данными
       case 'system_cpu':
-        return `Загрузка процессора: ${result.data?.cpu || 'неизвестно'}%.`;
+        return `💻 Процессор загружен на ${result.data?.cpu || 'неизвестно'}! ` + 
+               getRandomResponse(['Всё под контролем!', 'Мониторим работу!', 'Система в норме!']);
       case 'system_memory':
-        return `Использовано памяти: ${result.data?.memory || 'неизвестно'}%.`;
+        return `🧠 Память использована на ${result.data?.memory || 'неизвестно'}! ` + 
+               getRandomResponse(['Оперативка работает!', 'Ресурсы контролируем!', 'Всё оптимально!']);
       case 'system_disk':
-        return `Свободно места: ${result.data?.disk || 'неизвестно'}.`;
+        return `💾 Место на диске: ${result.data?.disk || 'неизвестно'}! ` + 
+               getRandomResponse(['Пространство есть!', 'Диск в порядке!', 'Места хватает!']);
       case 'system_ip':
-        return `Ваш IP адрес: ${result.data?.ip || 'неизвестен'}.`;
+        return `🌐 Ваш IP: ${result.data?.ip || 'скрыт'}! ` + 
+               getRandomResponse(['Адрес определён!', 'Соединение активно!', 'В сети вы есть!']);
       case 'system_info':
-        return 'Получаю информацию о системе.';
+        return getCategoryResponse('system') + ' Информация собрана!';
         
       // Скриншоты и запись
       case 'screenshot':
-        return 'Делаю скриншот.';
+        return '📸 ' + getRandomResponse([
+          'Скриншот сделан! Момент сохранён!',
+          'Фото экрана готово! Зафиксировали!',
+          'Снимок экрана! Красота заснята!'
+        ]);
       case 'screen_record':
-        return `Записываю экран ${commandPayload.duration || 10} секунд.`;
+        const duration = commandPayload.duration || 10;
+        return `🎥 Записываю экран ${duration} секунд! ` + getRandomResponse([
+          'Экшн начинается!', 'Камера, мотор!', 'Запись пошла!'
+        ]);
         
       // Windows управление
       case 'minimize_all':
-        return 'Сворачиваю все окна.';
       case 'show_desktop':
-        return 'Показываю рабочий стол.';
       case 'lock_screen':
-        return 'Блокирую компьютер.';
       case 'empty_recycle_bin':
-        return 'Очищаю корзину.';
+      case 'close_window':
+      case 'focus_window':
+      case 'maximize_window':
+        return getCategoryResponse('system');
+        
+      // Chrome управление  
+      case 'chrome_new_tab':
+      case 'chrome_close_tab':
+      case 'chrome_refresh':
+      case 'chrome_fullscreen_media':
+      case 'chrome_scroll_down':
+      case 'chrome_scroll_up':
+      case 'chrome_find_text':
+      case 'chrome_click_link':
+        return getCategoryResponse('chrome');
+        
+      // Notion интеграция
+      case 'notion_today_tasks':
+        const taskCount = result.data?.count || 0;
+        const taskList = result.data?.tasks || '';
+        if (taskCount === 0) {
+          return '📋 На сегодня задач нет! Отличный день для отдыха! ✨';
+        }
+        return `📋 Ваши задачи на сегодня: ${taskList}. Всего ${taskCount} задач.`;
+      case 'notion_upcoming_events':
+        const eventCount = result.data?.count || 0;
+        return `📅 ${eventCount} событий на неделе! ` + getCategoryResponse('notion');
+      case 'notion_create_task':
+        return `✅ Задача "${result.data?.title || 'новая'}" создана! ` + getCategoryResponse('notion');
+        
+      // Profile system
+      case 'activate_profile':
+        const profileName = result.data?.profileName || 'неизвестный';
+        return `🎯 Профиль "${profileName}" активирован! ` + getRandomResponse([
+          'Рабочая среда настроена!',
+          'Всё организовано как надо!',
+          'Идеальное рабочее пространство!'
+        ]);
+      case 'tile_windows':
+        const layout = result.details?.layout || 'split';
+        return `🏗️ Окна организованы в режиме "${layout}"! ` + getRandomResponse([
+          'Порядок наведён!',
+          'Всё на своих местах!',
+          'Красота и функциональность!'
+        ]);
         
       case 'say_ok':
       default:
         if (userText.includes('навык') || userText === '') {
-          // Случайный приветственный ответ
-          const welcomes = config.responses.welcome;
-          return welcomes[Math.floor(Math.random() * welcomes.length)];
+          return getRandomResponse(config.responses.welcome);
         } else {
-          // Случайный ответ об успехе
-          const successes = config.responses.success;
-          return successes[Math.floor(Math.random() * successes.length)];
+          return getRandomResponse(config.responses.success);
         }
     }
   } else {
-    // Случайный ответ об ошибке
-    const errors = config.responses.error;
-    return errors[Math.floor(Math.random() * errors.length)];
+    return getRandomResponse(config.responses.error);
   }
 }
 

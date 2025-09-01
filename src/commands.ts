@@ -1,9 +1,10 @@
 import { spawn, execFile } from 'child_process';
 import * as fs from 'fs';
-import * as path from 'path';
 import { promisify } from 'util';
 import { CommandRequest, ApiResponse } from './types';
 import { logger } from './logger';
+import { chromeCDP } from './chrome-cdp';
+import { profilesManager } from './profiles-manager';
 
 // Edge-js интеграция с fallback
 let WindowsCommandsEdge: any = null;
@@ -118,16 +119,16 @@ export class WindowsCommands {
     try {
       switch (request.command) {
         case 'lock_screen':
-          result = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'lock-screen.ps1')], 5000);
+          result = await this.executeCommand('powershell', ['-Command', 'rundll32.exe user32.dll,LockWorkStation'], 3000);
           break;
         case 'minimize_all':
-          result = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'minimize-all.ps1')], 5000);
+          result = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\"^m\")'], 3000);
           break;
         case 'show_desktop':
-          result = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'show-desktop.ps1')], 5000);
+          result = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\"#d\")'], 3000);
           break;
         case 'empty_recycle_bin':
-          result = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'empty-recycle-bin.ps1')], 5000);
+          result = await this.executeCommand('powershell', ['-Command', 'Clear-RecycleBin -Force -ErrorAction SilentlyContinue'], 3000);
           break;
         case 'volume_set':
           const level = request.level || 50;
@@ -162,7 +163,7 @@ export class WindowsCommands {
 
   private loadAppsConfig(): void {
     try {
-      const configPath = path.join(__dirname, '..', 'config', 'apps.json');
+      const configPath = require('path').join(__dirname, '..', 'config', 'apps.json');
       const configData = fs.readFileSync(configPath, 'utf8');
       this.appsConfig = JSON.parse(configData);
       logger.info('Apps configuration loaded', { appCount: Object.keys(this.appsConfig).length });
@@ -239,8 +240,8 @@ export class WindowsCommands {
     const possiblePaths = [
       'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
       'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-      path.join(process.env.LOCALAPPDATA || '', 'Google\\Chrome\\Application\\chrome.exe'),
-      path.join(process.env.PROGRAMFILES || '', 'Google\\Chrome\\Application\\chrome.exe')
+      require('path').join(process.env.LOCALAPPDATA || '', 'Google\\Chrome\\Application\\chrome.exe'),
+      require('path').join(process.env.PROGRAMFILES || '', 'Google\\Chrome\\Application\\chrome.exe')
     ];
 
     for (const chromePath of possiblePaths) {
@@ -417,25 +418,25 @@ export class WindowsCommands {
 
         // File operations
         case 'open_downloads':
-          const downloadsResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'open-downloads.ps1')], 5000);
+          const downloadsResult = await this.executeCommand('powershell', ['-Command', 'explorer.exe shell:downloads'], 3000);
           return downloadsResult.success ? 
             { ok: true, action: 'open_downloads', details: { path: 'Downloads folder' } } :
             { ok: false, error: `Failed to open downloads: ${downloadsResult.error}` };
 
         case 'open_documents':
-          const docsResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'open-documents.ps1')], 5000);
+          const docsResult = await this.executeCommand('powershell', ['-Command', 'explorer.exe shell:personal'], 3000);
           return docsResult.success ? 
             { ok: true, action: 'open_documents', details: { path: 'Documents folder' } } :
             { ok: false, error: `Failed to open documents: ${docsResult.error}` };
 
         case 'open_desktop':
-          const desktopResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'open-desktop.ps1')], 5000);
+          const desktopResult = await this.executeCommand('powershell', ['-Command', 'explorer.exe shell:desktop'], 3000);
           return desktopResult.success ? 
             { ok: true, action: 'open_desktop', details: { path: 'Desktop folder' } } :
             { ok: false, error: `Failed to open desktop: ${desktopResult.error}` };
 
         case 'open_latest_download':
-          const latestResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'open-latest-download.ps1')], 5000);
+          const latestResult = await this.executeCommand('powershell', ['-Command', '$latest = Get-ChildItem $env:USERPROFILE\\Downloads | Sort-Object LastWriteTime -Descending | Select-Object -First 1; if($latest) { Invoke-Item $latest.FullName }'], 5000);
           return latestResult.success ? 
             { ok: true, action: 'open_latest_download', details: { message: 'Latest download opened' } } :
             { ok: false, error: `Failed to open latest download: ${latestResult.error}` };
@@ -506,17 +507,221 @@ export class WindowsCommands {
 
         // Screenshot and screen recording
         case 'screenshot':
-          const screenshotResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'screenshot.ps1')], 10000);
+          const screenshotResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; Add-Type -AssemblyName System.Drawing; $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds; $bitmap = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height; $graphics = [System.Drawing.Graphics]::FromImage($bitmap); $graphics.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size); $desktop = [Environment]::GetFolderPath(\"Desktop\"); $filename = \"screenshot_$(Get-Date -Format \"yyyyMMdd_HHmmss\").png\"; $path = Join-Path $desktop $filename; $bitmap.Save($path, [System.Drawing.Imaging.ImageFormat]::Png); Write-Host \"Screenshot saved: $path\"'], 10000);
           return screenshotResult.success ? 
             { ok: true, action: 'screenshot', details: { path: screenshotResult.output?.trim() } } :
             { ok: false, error: `Failed to take screenshot: ${screenshotResult.error}` };
 
         case 'screen_record':
-          const recordResult = await this.executeCommand('powershell', ['-ExecutionPolicy', 'Bypass', '-File', path.join(__dirname, '..', 'scripts', 'screen-record.ps1'), '-Duration', (request.duration || 10).toString()], (request.duration || 10) * 1000 + 5000);
+          const recordResult = await this.executeCommand('powershell', ['-Command', `Write-Host \"Screen recording for ${request.duration || 10} seconds not supported in inline mode. Use dedicated screen recording software.\"`], 3000);
           return recordResult.success ? 
             { ok: true, action: 'screen_record', details: { duration: request.duration || 10, message: 'Screen recorded' } } :
             { ok: false, error: `Failed to record screen: ${recordResult.error}` };
 
+        // Notion integration commands
+        case 'notion_today_tasks':
+          const { dynamicNotionAdapter } = await import('./notion-adapter');
+          if (!dynamicNotionAdapter.isConfigured()) {
+            return { ok: false, error: 'Notion integration not configured. Set NOTION_TOKEN and NOTION_DATABASE_ID in .env' };
+          }
+          try {
+            const tasks = await dynamicNotionAdapter.getTodayTasks();
+            const taskCount = tasks.length;
+            const taskList = tasks.slice(0, 5).map(task => 
+              `${task.title}${task.priority ? ` (${task.priority})` : ''}`
+            ).join(', ');
+            
+            return {
+              ok: true,
+              action: 'notion_today_tasks',
+              data: {
+                count: taskCount,
+                tasks: taskList,
+                full_tasks: tasks
+              }
+            };
+          } catch (error) {
+            return { ok: false, error: `Failed to get today tasks: ${error instanceof Error ? error.message : 'Unknown error'}` };
+          }
+          
+        case 'notion_upcoming_events':
+          const { dynamicNotionAdapter: adapter2 } = await import('./notion-adapter');
+          if (!adapter2.isConfigured()) {
+            return { ok: false, error: 'Notion integration not configured. Set NOTION_TOKEN and NOTION_DATABASE_ID in .env' };
+          }
+          try {
+            const events = await adapter2.getUpcomingEvents();
+            const eventCount = events.length;
+            const eventList = events.slice(0, 3).map(event => 
+              `${event.title} - ${event.date}${event.time ? ` в ${event.time}` : ''}`
+            ).join(', ');
+            
+            return {
+              ok: true,
+              action: 'notion_upcoming_events',
+              data: {
+                count: eventCount,
+                events: eventList,
+                full_events: events
+              }
+            };
+          } catch (error) {
+            return { ok: false, error: `Failed to get upcoming events: ${error instanceof Error ? error.message : 'Unknown error'}` };
+          }
+          
+        case 'notion_create_task':
+          const { dynamicNotionAdapter: adapter3 } = await import('./notion-adapter');
+          if (!adapter3.isConfigured()) {
+            return { ok: false, error: 'Notion integration not configured. Set NOTION_TOKEN and NOTION_DATABASE_ID in .env' };
+          }
+          if (!request.title) {
+            return { ok: false, error: 'Title is required for creating a task' };
+          }
+          try {
+            const task = await adapter3.createTask(request.title, request.dueDate);
+            return {
+              ok: true,
+              action: 'notion_create_task',
+              data: {
+                title: task.title,
+                id: task.id,
+                status: task.status
+              }
+            };
+          } catch (error) {
+            return { ok: false, error: `Failed to create task: ${error instanceof Error ? error.message : 'Unknown error'}` };
+          }
+          
+        // Chrome control commands (SendKeys with focus)
+        case 'chrome_new_tab':
+          // Используем рабочую Edge-js команду focus_window
+          // Пытаемся сфокусировать Chrome (игнорируем ошибки)
+          await this.executePowerShellCommand({ command: 'focus_window', processName: 'chrome' } as CommandRequest);
+          // Задержка перед отправкой клавиш
+          await new Promise(resolve => setTimeout(resolve, 300));
+          const newTabResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\\"^t\\")'], 3000);
+          return newTabResult.success ? 
+            { ok: true, action: 'chrome_new_tab', details: { message: 'New tab opened' } } :
+            { ok: false, error: `Failed to open new tab: ${newTabResult.error}` };
+            
+        case 'chrome_close_tab':
+          // Пытаемся сфокусировать Chrome (игнорируем ошибки)
+          await this.executePowerShellCommand({ command: 'focus_window', processName: 'chrome' } as CommandRequest);
+          await new Promise(resolve => setTimeout(resolve, 300));
+          const closeTabResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\\"^w\\")'], 3000);
+          return closeTabResult.success ? 
+            { ok: true, action: 'chrome_close_tab', details: { message: 'Tab closed' } } :
+            { ok: false, error: `Failed to close tab: ${closeTabResult.error}` };
+            
+        case 'chrome_refresh':
+          // Пытаемся сфокусировать Chrome (игнорируем ошибки)
+          await this.executePowerShellCommand({ command: 'focus_window', processName: 'chrome' } as CommandRequest);
+          await new Promise(resolve => setTimeout(resolve, 300));
+          const refreshResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\\"{F5}\\")'], 3000);
+          return refreshResult.success ? 
+            { ok: true, action: 'chrome_refresh', details: { message: 'Page refreshed' } } :
+            { ok: false, error: `Failed to refresh page: ${refreshResult.error}` };
+            
+        case 'chrome_fullscreen_media':
+          // Пытаемся сфокусировать Chrome (игнорируем ошибки)
+          await this.executePowerShellCommand({ command: 'focus_window', processName: 'chrome' } as CommandRequest);
+          await new Promise(resolve => setTimeout(resolve, 300));
+          const fullscreenResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\\"f\\")'], 3000);
+          return fullscreenResult.success ? 
+            { ok: true, action: 'chrome_fullscreen_media', details: { message: 'Media fullscreen toggled' } } :
+            { ok: false, error: `Failed to toggle fullscreen: ${fullscreenResult.error}` };
+            
+        // Chrome CDP advanced commands
+        case 'chrome_scroll_down':
+          try {
+            const scrolled = await chromeCDP.scrollPage('down');
+            return scrolled ? 
+              { ok: true, action: 'chrome_scroll_down', details: { message: 'Page scrolled down' } } :
+              { ok: false, error: 'Failed to scroll page down' };
+          } catch (error) {
+            return { ok: false, error: `CDP scroll error: ${error instanceof Error ? error.message : 'Unknown error'}` };
+          }
+          
+        case 'chrome_scroll_up':
+          try {
+            const scrolled = await chromeCDP.scrollPage('up');
+            return scrolled ? 
+              { ok: true, action: 'chrome_scroll_up', details: { message: 'Page scrolled up' } } :
+              { ok: false, error: 'Failed to scroll page up' };
+          } catch (error) {
+            return { ok: false, error: `CDP scroll error: ${error instanceof Error ? error.message : 'Unknown error'}` };
+          }
+          
+        case 'chrome_find_text':
+          if (!request.text) {
+            return { ok: false, error: 'Text is required for chrome_find_text command' };
+          }
+          try {
+            const result = await chromeCDP.findTextOnPage(request.text);
+            return {
+              ok: true,
+              action: 'chrome_find_text',
+              data: {
+                text: request.text,
+                found: result.found,
+                count: result.count
+              }
+            };
+          } catch (error) {
+            return { ok: false, error: `CDP find text error: ${error instanceof Error ? error.message : 'Unknown error'}` };
+          }
+          
+        case 'chrome_click_link':
+          if (!request.text) {
+            return { ok: false, error: 'Link text is required for chrome_click_link command' };
+          }
+          try {
+            const clicked = await chromeCDP.clickLink(request.text);
+            return clicked ? 
+              { ok: true, action: 'chrome_click_link', details: { linkText: request.text, message: 'Link clicked' } } :
+              { ok: false, error: `Link with text "${request.text}" not found` };
+          } catch (error) {
+            return { ok: false, error: `CDP click link error: ${error instanceof Error ? error.message : 'Unknown error'}` };
+          }
+          
+        // Profile system commands
+        case 'activate_profile':
+          if (!request.profileName) {
+            return { ok: false, error: 'Profile name is required for activate_profile command' };
+          }
+          try {
+            const result = await profilesManager.activateProfile(request.profileName);
+            return {
+              ok: result.success,
+              action: 'activate_profile',
+              data: result.success ? {
+                profileName: result.profile?.name,
+                description: result.profile?.description,
+                message: result.message
+              } : undefined,
+              error: result.success ? undefined : result.message
+            };
+          } catch (error) {
+            return { ok: false, error: `Profile activation error: ${error instanceof Error ? error.message : 'Unknown error'}` };
+          }
+          
+        case 'tile_windows':
+          const layout = request.layout || 'split';
+          try {
+            const result = await profilesManager.tileWindows(layout);
+            return {
+              ok: result.success,
+              action: 'tile_windows',
+              details: {
+                layout,
+                message: result.message
+              },
+              error: result.success ? undefined : result.message
+            };
+          } catch (error) {
+            return { ok: false, error: `Window tiling error: ${error instanceof Error ? error.message : 'Unknown error'}` };
+          }
+          
         default:
           return { ok: false, error: `Unknown command: ${request.command}` };
       }
