@@ -53,7 +53,8 @@
       "Bash(tree:*)",
       "Bash(tskill:*)",
       "Bash(call:*)",
-      "Bash(start http://localhost:3002/dashboard)"
+      "Bash(start http://localhost:3002/dashboard)",
+      "mcp__ide__getDiagnostics"
     ],
     "deny": [],
     "ask": []

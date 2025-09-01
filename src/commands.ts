@@ -404,16 +404,16 @@ export class WindowsCommands {
             { ok: false, error: `Failed to decrease volume: ${volDownResult.error}` };
 
         case 'volume_mute':
-          const muteResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{VOLUME_MUTE}")'], 3000);
+          const muteResult = await this.executeCommand('powershell', ['-Command', '(New-Object -com wscript.shell).SendKeys([char]173)'], 3000);
           return muteResult.success ? 
-            { ok: true, action: 'volume_mute', details: { message: 'Volume muted' } } :
-            { ok: false, error: `Failed to mute volume: ${muteResult.error}` };
+            { ok: true, action: 'volume_mute', details: { message: 'Volume muted/unmuted (toggle)' } } :
+            { ok: false, error: `Failed to toggle mute: ${muteResult.error}` };
 
         case 'volume_unmute':
-          const unmuteResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{VOLUME_MUTE}")'], 3000);
+          const unmuteResult = await this.executeCommand('powershell', ['-Command', '(New-Object -com wscript.shell).SendKeys([char]173)'], 3000);
           return unmuteResult.success ? 
-            { ok: true, action: 'volume_unmute', details: { message: 'Volume unmuted' } } :
-            { ok: false, error: `Failed to unmute volume: ${unmuteResult.error}` };
+            { ok: true, action: 'volume_unmute', details: { message: 'Volume muted/unmuted (toggle)' } } :
+            { ok: false, error: `Failed to toggle mute: ${unmuteResult.error}` };
 
         // File operations
         case 'open_downloads':
@@ -443,7 +443,7 @@ export class WindowsCommands {
         // System information commands
         case 'system_cpu':
           const cpuResult = await this.executeCommand('powershell', ['-Command', 
-            'Get-WmiObject -Class Win32_Processor | Measure-Object -Property LoadPercentage -Average | Select -ExpandProperty Average'
+            '(Get-CimInstance Win32_Processor | Measure-Object -Property LoadPercentage -Average).Average'
           ], 5000);
           return cpuResult.success ? 
             { ok: true, action: 'system_cpu', data: { cpu: cpuResult.output?.trim() + '%' } } :
@@ -451,7 +451,7 @@ export class WindowsCommands {
 
         case 'system_memory':
           const memResult = await this.executeCommand('powershell', ['-Command', 
-            '$total = (Get-WmiObject -Class Win32_ComputerSystem).TotalPhysicalMemory; $available = (Get-WmiObject -Class Win32_OperatingSystem).FreePhysicalMemory * 1024; [math]::Round(($total - $available) / $total * 100, 1)'
+            '(Get-CimInstance Win32_OperatingSystem | % { [math]::Round((1 - $_.FreePhysicalMemory*1024/(Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory)*100,1) })'
           ], 5000);
           return memResult.success ? 
             { ok: true, action: 'system_memory', data: { memory: memResult.output?.trim() + '%' } } :
@@ -459,7 +459,7 @@ export class WindowsCommands {
 
         case 'system_disk':
           const diskResult = await this.executeCommand('powershell', ['-Command', 
-            'Get-WmiObject -Class Win32_LogicalDisk -Filter "DriveType=3" | Select-Object @{Name="Drive";Expression={$_.DeviceID}}, @{Name="FreeGB";Expression={[math]::Round($_.FreeSpace/1GB,1)}}, @{Name="TotalGB";Expression={[math]::Round($_.Size/1GB,1)}} | Format-Table -AutoSize | Out-String'
+            'Get-CimInstance Win32_LogicalDisk -Filter "DriveType=3" | % { $_.DeviceID + " " + [math]::Round($_.FreeSpace/1GB,1) + "GB/" + [math]::Round($_.Size/1GB,1) + "GB" }'
           ], 5000);
           return diskResult.success ? 
             { ok: true, action: 'system_disk', data: { disk: diskResult.output?.trim() } } :
@@ -475,7 +475,7 @@ export class WindowsCommands {
 
         case 'system_info':
           const infoResult = await this.executeCommand('powershell', ['-Command', 
-            'Get-ComputerInfo | Select-Object WindowsProductName, WindowsVersion, TotalPhysicalMemory, CsProcessors | Format-List | Out-String'
+            '"OS: " + (Get-CimInstance Win32_OperatingSystem).Caption + "; Version: " + (Get-CimInstance Win32_OperatingSystem).Version + "; RAM: " + [math]::Round((Get-CimInstance Win32_ComputerSystem).TotalPhysicalMemory/1GB,2) + "GB; CPU: " + (Get-CimInstance Win32_Processor).Name'
           ], 5000);
           return infoResult.success ? 
             { ok: true, action: 'system_info', data: { info: infoResult.output?.trim() } } :

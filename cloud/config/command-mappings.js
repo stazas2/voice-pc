@@ -4,29 +4,28 @@ const COMMAND_MAPPINGS = {
   'запусти навык головной отрыв': { command: 'say_ok' },
   'запусти головной отрыв': { command: 'say_ok' },
   'головной отрыв': { command: 'say_ok' },
-
+  '': { command: 'say_ok' },
+  
   // Блокнот
-  // Команды для работы с блокнотом
   'запусти блокнот': { command: 'open_notepad' },
   'открой блокнот': { command: 'open_notepad' },
   'блокнот': { command: 'open_notepad' },
-
+  
   // Браузер с конкретными сайтами
   'открой ютуб': { command: 'open_chrome', url: 'https://youtube.com' },
   'запусти ютуб': { command: 'open_chrome', url: 'https://youtube.com' },
   'открой гугл': { command: 'open_chrome', url: 'https://google.com' },
   'открой хром': { command: 'open_chrome', url: 'https://google.com' },
   'открой браузер': { command: 'open_chrome', url: 'https://google.com' },
-
+  
   // Выключение и сон
-  // Управление питанием компьютера
   'выключи компьютер': { command: 'shutdown_now' },
   'выключи пк': { command: 'shutdown_now' },
   'выключи ноутбук': { command: 'shutdown_now' },
   'усыпи компьютер': { command: 'sleep_now' },
   'усыпи пк': { command: 'sleep_now' },
   'переведи в сон': { command: 'sleep_now' },
-
+  
   // Приложения по алиасам
   'запусти калькулятор': { command: 'open_app', alias: 'calculator' },
   'открой калькулятор': { command: 'open_app', alias: 'calculator' },
@@ -38,9 +37,8 @@ const COMMAND_MAPPINGS = {
   'открой командную строку': { command: 'open_app', alias: 'cmd' },
   'запусти паверши': { command: 'open_app', alias: 'powershell' },
   'открой паверши': { command: 'open_app', alias: 'powershell' },
-
+  
   // Медиа управление
-  // Управление воспроизведением медиа
   'пауза на пк': { command: 'media_pause' },
   'поставь на паузу на компьютере': { command: 'media_pause' },
   'продолжи на пк': { command: 'media_play' },
@@ -60,9 +58,8 @@ const COMMAND_MAPPINGS = {
   'тише на компьютере': { command: 'volume_down' },
   'выключи звук на пк': { command: 'volume_mute' },
   'включи звук на компьютере': { command: 'volume_unmute' },
-
-  // Файловые операции
-  // Работа с файлами и папками
+  
+  // Файловые операции  
   'открой загрузки': { command: 'open_downloads' },
   'покажи загрузки': { command: 'open_downloads' },
   'открой документы': { command: 'open_documents' },
@@ -70,9 +67,8 @@ const COMMAND_MAPPINGS = {
   'открой рабочий стол': { command: 'open_desktop' },
   'последний скачанный': { command: 'open_latest_download' },
   'что скачал последним': { command: 'open_latest_download' },
-
+  
   // Системная информация
-  // Получение информации о системе
   'загрузка процессора': { command: 'system_cpu' },
   'процессор загружен': { command: 'system_cpu' },
   'свободное место': { command: 'system_disk' },
@@ -83,34 +79,39 @@ const COMMAND_MAPPINGS = {
   'какой айпи': { command: 'system_ip' },
   'системная информация': { command: 'system_info' },
   'информация о системе': { command: 'system_info' },
-
+  
   // Скриншоты и запись
-  // Создание скриншотов и запись экрана
   'сделай скрин': { command: 'screenshot' },
   'скриншот': { command: 'screenshot' },
   'сфоткай экран': { command: 'screenshot' },
   'запиши экран': { command: 'screen_record', duration: 10 },
   'запись экрана': { command: 'screen_record', duration: 10 },
-
+  
+  // ═══════════════════════════════════════════════════════════════════
+  // 🚀 WINDOWS УПРАВЛЕНИЕ (Edge-js API - высокая производительность)
+  // ═══════════════════════════════════════════════════════════════════
+  
   // Минимизация окон (EnumWindows + ShowWindow API)
   'сверни все окна': { command: 'minimize_all' },
   'сверни окна': { command: 'minimize_all' },
   'закрой все окна': { command: 'minimize_all' },
+  
+  // Показ рабочего стола (FindWindow + ShowWindow API)
   'покажи рабочий стол': { command: 'show_desktop' },
   'покажи десктоп': { command: 'show_desktop' },
   'рабочий стол': { command: 'show_desktop' },
-
+  
   // Блокировка экрана (LockWorkStation API)
   'заблокируй компьютер': { command: 'lock_screen' },
   'заблокируй экран': { command: 'lock_screen' },
   'заблокируй пк': { command: 'lock_screen' },
   'блокировка': { command: 'lock_screen' },
-
-  // Очистка корзины (SHEmptyRecycleBin API)
+  
+  // Очистка корзины (SHEmptyRecycleBin API)  
   'очисти корзину': { command: 'empty_recycle_bin' },
   'опустоши корзину': { command: 'empty_recycle_bin' },
   'удали всё из корзины': { command: 'empty_recycle_bin' },
-
+  
   // Точное управление громкостью (SendMessage API)
   'громкость компьютера ноль': { command: 'volume_set', level: 0 },
   'громкость на пк ноль': { command: 'volume_set', level: 0 },
@@ -132,6 +133,8 @@ const COMMAND_MAPPINGS = {
   'звук половину на компьютере': { command: 'volume_set', level: 50 },
   'звук треть на пк': { command: 'volume_set', level: 33 },
   'звук четверть на компьютере': { command: 'volume_set', level: 25 },
+  
+  // Закрытие конкретных окон (PostMessage + WM_CLOSE API)
   'закрой хром': { command: 'close_window', processName: 'chrome' },
   'закрой браузер': { command: 'close_window', processName: 'chrome' },
   'убей хром': { command: 'close_window', processName: 'chrome' },
@@ -154,6 +157,8 @@ const COMMAND_MAPPINGS = {
   'убей дискорд': { command: 'close_window', processName: 'Discord' },
   'закрой телеграм': { command: 'close_window', processName: 'Telegram' },
   'убей телеграм': { command: 'close_window', processName: 'Telegram' },
+  
+  // Фокусировка на конкретных окнах (SetForegroundWindow API)
   'переключись на хром': { command: 'focus_window', processName: 'chrome' },
   'переключись на браузер': { command: 'focus_window', processName: 'chrome' },
   'активируй хром': { command: 'focus_window', processName: 'chrome' },
@@ -175,6 +180,8 @@ const COMMAND_MAPPINGS = {
   'активируй код': { command: 'focus_window', processName: 'Code' },
   'переключись на vscode': { command: 'focus_window', processName: 'Code' },
   'активируй vscode': { command: 'focus_window', processName: 'Code' },
+  
+  // Максимизация конкретных окон (ShowWindow + SW_MAXIMIZE API)
   'разверни хром': { command: 'maximize_window', processName: 'chrome' },
   'разверни браузер': { command: 'maximize_window', processName: 'chrome' },
   'максимизируй хром': { command: 'maximize_window', processName: 'chrome' },
@@ -196,7 +203,9 @@ const COMMAND_MAPPINGS = {
   'максимизируй код': { command: 'maximize_window', processName: 'Code' },
   'разверни vscode': { command: 'maximize_window', processName: 'Code' },
   'максимизируй vscode': { command: 'maximize_window', processName: 'Code' },
-
+  
+  // ═══════════════════════════════════════════════════════════════════
+  
   // Дополнительные сайты
   'открой твич': { command: 'open_chrome', url: 'https://twitch.tv' },
   'открой гитхаб': { command: 'open_chrome', url: 'https://github.com' },
@@ -204,12 +213,11 @@ const COMMAND_MAPPINGS = {
   'открой клод': { command: 'open_chrome', url: 'https://claude.ai' },
   'открой вк': { command: 'open_chrome', url: 'https://vk.com' },
   'открой телеграм': { command: 'open_chrome', url: 'https://web.telegram.org' },
-
+  
   // Fallback команды
   'тест': { command: 'say_ok' },
   'проверка': { command: 'say_ok' },
-  'статус': { command: 'say_ok' },
-
+  'статус': { command: 'say_ok' }
 };
 
 module.exports = { COMMAND_MAPPINGS };
