@@ -305,6 +305,26 @@ export class WindowsCommands {
             return { ok: false, error: `Failed to shutdown: ${shutdownResult.error}` };
           }
 
+        case 'shutdown_delayed':
+          const delay = request.delay || 60; // по умолчанию 1 минута
+          const delayedShutdownResult = await this.executeCommand('shutdown', ['/s', '/t', delay.toString()], 3000);
+          if (delayedShutdownResult.success) {
+            const minutes = Math.floor(delay / 60);
+            const seconds = delay % 60;
+            const timeStr = minutes > 0 ? `${minutes} мин ${seconds} сек` : `${seconds} сек`;
+            return { ok: true, action: 'shutdown_delayed', details: { delay: timeStr, seconds: delay } };
+          } else {
+            return { ok: false, error: `Failed to schedule shutdown: ${delayedShutdownResult.error}` };
+          }
+
+        case 'shutdown_cancel':
+          const cancelResult = await this.executeCommand('shutdown', ['/a'], 3000);
+          if (cancelResult.success) {
+            return { ok: true, action: 'shutdown_cancel', details: { message: 'Shutdown cancelled' } };
+          } else {
+            return { ok: false, error: `Failed to cancel shutdown: ${cancelResult.error}` };
+          }
+
         case 'sleep_now':
           // Use PowerShell for reliable sleep
           const sleepResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.Application]::SetSuspendState([System.Windows.Forms.PowerState]::Suspend, $true, $true)'], 5000);
@@ -363,13 +383,23 @@ export class WindowsCommands {
 
         // Media control commands
         case 'media_pause':
-          const pauseResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{MEDIA_PLAY_PAUSE}")'], 3000);
+          // Пробуем несколько методов: VK код медиа кнопки, потом fallback
+          let pauseResult = await this.executeCommand('powershell', ['-Command', '(New-Object -ComObject WScript.Shell).SendKeys([char]179)'], 3000);
+          if (!pauseResult.success) {
+            // Fallback: пробуем через SendKeys пробел (универсальная пауза)
+            pauseResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(" ")'], 3000);
+          }
           return pauseResult.success ? 
             { ok: true, action: 'media_pause', details: { message: 'Media paused' } } :
             { ok: false, error: `Failed to pause media: ${pauseResult.error}` };
 
         case 'media_play':
-          const playResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{MEDIA_PLAY_PAUSE}")'], 3000);
+          // Пробуем несколько методов: VK код медиа кнопки, потом fallback
+          let playResult = await this.executeCommand('powershell', ['-Command', '(New-Object -ComObject WScript.Shell).SendKeys([char]179)'], 3000);
+          if (!playResult.success) {
+            // Fallback: пробуем через SendKeys пробел (универсальная пауза/плей)
+            playResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(" ")'], 3000);
+          }
           return playResult.success ? 
             { ok: true, action: 'media_play', details: { message: 'Media resumed' } } :
             { ok: false, error: `Failed to resume media: ${playResult.error}` };
@@ -393,13 +423,15 @@ export class WindowsCommands {
             { ok: false, error: `Failed to stop media: ${stopResult.error}` };
 
         case 'volume_up':
-          const volUpResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{VOLUME_UP}")'], 3000);
+          // Используем правильные VK коды для Volume Up
+          const volUpResult = await this.executeCommand('powershell', ['-Command', '[console]::beep(1000,200); (New-Object -ComObject WScript.Shell).SendKeys([char]175)'], 3000);
           return volUpResult.success ? 
             { ok: true, action: 'volume_up', details: { message: 'Volume increased' } } :
             { ok: false, error: `Failed to increase volume: ${volUpResult.error}` };
 
         case 'volume_down':
-          const volDownResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("{VOLUME_DOWN}")'], 3000);
+          // Используем правильные VK коды для Volume Down
+          const volDownResult = await this.executeCommand('powershell', ['-Command', '[console]::beep(800,200); (New-Object -ComObject WScript.Shell).SendKeys([char]174)'], 3000);
           return volDownResult.success ? 
             { ok: true, action: 'volume_down', details: { message: 'Volume decreased' } } :
             { ok: false, error: `Failed to decrease volume: ${volDownResult.error}` };
@@ -623,13 +655,20 @@ export class WindowsCommands {
             { ok: false, error: `Failed to refresh page: ${refreshResult.error}` };
             
         case 'chrome_fullscreen_media':
-          // Пытаемся сфокусировать Chrome (игнорируем ошибки)
-          await this.executePowerShellCommand({ command: 'focus_window', processName: 'chrome' } as CommandRequest);
-          await new Promise(resolve => setTimeout(resolve, 300));
-          const fullscreenResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\\"f\\")'], 3000);
+          // Просто отправляем 'f' для переключения fullscreen (работает на любой медиа странице)
+          const fullscreenResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("f")'], 3000);
+          
           return fullscreenResult.success ? 
             { ok: true, action: 'chrome_fullscreen_media', details: { message: 'Media fullscreen toggled' } } :
             { ok: false, error: `Failed to toggle fullscreen: ${fullscreenResult.error}` };
+
+        case 'chrome_media_pause':
+          // Универсальная пауза для браузерных видео (YouTube, Netflix и т.д.) - пробел
+          const chromePauseResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\\" \\")'], 3000);
+          
+          return chromePauseResult.success ? 
+            { ok: true, action: 'chrome_media_pause', details: { message: 'Browser media paused/resumed' } } :
+            { ok: false, error: `Failed to pause browser media: ${chromePauseResult.error}` };
             
         // Chrome CDP advanced commands
         case 'chrome_scroll_down':

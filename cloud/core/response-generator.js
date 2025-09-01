@@ -49,6 +49,21 @@ function generateResponse(commandPayload, result, userText) {
           'Выключение запущено! Хороших снов!'
         ]);
         
+      case 'shutdown_delayed':
+        const delayTime = result.data?.delay || 'неизвестное время';
+        return `⏰ Компьютер выключится через ${delayTime}! ` + getRandomResponse([
+          'Не забудьте сохранить работу!',
+          'У вас есть время завершить дела!',
+          'Время на последние приготовления!'
+        ]);
+        
+      case 'shutdown_cancel':
+        return '✋ ' + getRandomResponse([
+          'Выключение отменено! Работаем дальше!',
+          'Остаюсь включенным! Продолжаем!',
+          'Отмена принята! ПК остается онлайн!'
+        ]);
+        
       case 'sleep_now':
         return '😴 ' + getRandomResponse([
           'Компьютер в спящий режим! Отдыхаем!',
@@ -68,6 +83,13 @@ function generateResponse(commandPayload, result, userText) {
       case 'volume_unmute':
       case 'volume_set':
         return getCategoryResponse('media');
+        
+      case 'chrome_media_pause':
+        return '🎬 ' + getRandomResponse([
+          'Видео поставлено на паузу! Перерывчик?',
+          'Фильм остановлен! Время подумать!',
+          'YouTube на паузе! Отдыхаем!'
+        ]);
         
       // Файловые операции
       case 'open_downloads':

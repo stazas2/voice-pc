@@ -1,5 +1,5 @@
 export interface CommandRequest {
-  command: 'open_notepad' | 'open_chrome' | 'shutdown_now' | 'sleep_now' | 'open_app' | 'say_ok' |
+  command: 'open_notepad' | 'open_chrome' | 'shutdown_now' | 'shutdown_delayed' | 'shutdown_cancel' | 'sleep_now' | 'open_app' | 'say_ok' |
     // Media commands
     'media_pause' | 'media_play' | 'media_next' | 'media_previous' | 'media_stop' |
     'volume_up' | 'volume_down' | 'volume_mute' | 'volume_unmute' | 'volume_set' |
@@ -14,7 +14,7 @@ export interface CommandRequest {
     // Notion integration
     'notion_today_tasks' | 'notion_upcoming_events' | 'notion_create_task' |
     // Chrome control
-    'chrome_new_tab' | 'chrome_close_tab' | 'chrome_refresh' | 'chrome_fullscreen_media' |
+    'chrome_new_tab' | 'chrome_close_tab' | 'chrome_refresh' | 'chrome_fullscreen_media' | 'chrome_media_pause' |
     // Chrome CDP advanced
     'chrome_scroll_down' | 'chrome_scroll_up' | 'chrome_click_link' | 'chrome_find_text' |
     // Profile system
@@ -23,6 +23,7 @@ export interface CommandRequest {
   alias?: string;
   duration?: number; // for screen recording
   level?: number; // for volume_set (0-100)
+  delay?: number; // for shutdown_delayed (seconds)
   processName?: string; // for close_window
   title?: string; // for notion_create_task
   dueDate?: string; // for notion_create_task

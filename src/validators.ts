@@ -2,7 +2,7 @@ import { z } from 'zod';
 
 export const commandSchema = z.object({
   command: z.enum([
-    'open_notepad', 'open_chrome', 'shutdown_now', 'sleep_now', 'open_app', 'say_ok',
+    'open_notepad', 'open_chrome', 'shutdown_now', 'shutdown_delayed', 'shutdown_cancel', 'sleep_now', 'open_app', 'say_ok',
     // Media commands
     'media_pause', 'media_play', 'media_next', 'media_previous', 'media_stop',
     'volume_up', 'volume_down', 'volume_mute', 'volume_unmute', 'volume_set',
@@ -17,7 +17,7 @@ export const commandSchema = z.object({
     // Notion integration
     'notion_today_tasks', 'notion_upcoming_events', 'notion_create_task',
     // Chrome control
-    'chrome_new_tab', 'chrome_close_tab', 'chrome_refresh', 'chrome_fullscreen_media',
+    'chrome_new_tab', 'chrome_close_tab', 'chrome_refresh', 'chrome_fullscreen_media', 'chrome_media_pause',
     // Chrome CDP advanced
     'chrome_scroll_down', 'chrome_scroll_up', 'chrome_click_link', 'chrome_find_text',
     // Profile system
@@ -27,6 +27,7 @@ export const commandSchema = z.object({
   alias: z.string().min(1).optional(),
   duration: z.number().min(1).max(300).optional(), // 1-300 seconds for screen recording
   level: z.number().min(0).max(100).optional(), // 0-100 for volume_set
+  delay: z.number().min(1).max(3600).optional(), // 1-3600 seconds for shutdown_delayed
   processName: z.string().min(1).optional(), // for close_window
   title: z.string().min(1).optional(), // for notion_create_task
   dueDate: z.string().optional(), // for notion_create_task

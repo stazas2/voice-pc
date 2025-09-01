@@ -58,7 +58,8 @@
       "Bash(PORT=3000 node dist/server.js)",
       "Bash(start chrome)",
       "Bash(tasklist:*)",
-      "Bash(start start-voice-pc-final.bat:*)"
+      "Bash(start start-voice-pc-final.bat:*)",
+      "Bash(start chrome:*)"
     ],
     "deny": [],
     "ask": []
