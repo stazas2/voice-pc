@@ -814,6 +814,94 @@ export class WindowsCommands {
             details: { message: 'Cancel last command functionality not yet implemented' } 
           };
           
+        case 'find_movie':
+          if (!request.movieTitle) {
+            return { ok: false, error: 'Movie title is required for find_movie command' };
+          }
+          
+          try {
+            const { findKinopoiskPlayerUrl } = await import('./kinopoisk-adapter');
+            const nluResult = {
+              intent: 'find_movie' as const,
+              title: request.movieTitle,
+              year: request.movieYear || null,
+              type: request.movieType || null
+            };
+            
+            const movieResult = await findKinopoiskPlayerUrl(nluResult);
+            
+            if (movieResult.url) {
+              // Открываем плеер в браузере
+              const chromePath = this.findChrome();
+              let openResult;
+              
+              if (chromePath) {
+                // Запускаем Chrome с CDP поддержкой для автоматизации плеера
+                openResult = await this.executeCommand('start', ['""', `"${chromePath}"`, '--remote-debugging-port=9222', '--disable-features=VizDisplayCompositor', movieResult.url], 5000);
+              } else {
+                openResult = await this.executeCommand('start', ['""', movieResult.url], 5000);
+              }
+              
+              if (openResult.success) {
+                // Запускаем клик в фоне, не ждем результата
+                setTimeout(async () => {
+                  try {
+                    logger.info('Background: Waiting 3 seconds for manual cursor positioning...');
+                    await new Promise(resolve => setTimeout(resolve, 3000));
+                    
+                    logger.info('Background: Activating C# click utility now!');
+                    const result = await this.executeCommand('.\\tools\\click.exe', ['960', '480'], 5000);
+                    if (result.success) {
+                      logger.info('Background: C# click executed successfully!');
+                      
+                      // Ждем немного и переходим в полноэкранный режим
+                      logger.info('Background: Waiting 1 second before fullscreen...');
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      
+                      logger.info('Background: Focusing Chrome window...');
+                      await this.executePowerShellCommand({ command: 'focus_window', processName: 'chrome' } as CommandRequest);
+                      await new Promise(resolve => setTimeout(resolve, 300));
+                      
+                      logger.info('Background: Activating fullscreen mode (F key)...');
+                      const fullscreenResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\\"f\\")'], 3000);
+                      if (fullscreenResult.success) {
+                        logger.info('Background: Fullscreen activated!');
+                      } else {
+                        logger.warn('Background: Fullscreen failed:', fullscreenResult.error);
+                      }
+                    } else {
+                      logger.warn('Background: C# click failed:', result.error);
+                    }
+                  } catch (error) {
+                    logger.warn('Background: Background process error:', error);
+                  }
+                }, 0);
+                
+                // Возвращаем ответ сразу
+                return {
+                  ok: true,
+                  action: 'find_movie',
+                  data: {
+                    title: request.movieTitle,
+                    url: movieResult.url,
+                    movie: movieResult.movie
+                  },
+                  details: { 
+                    message: movieResult.speak + ' Загружается... Через несколько секунд перейдет в полноэкранный режим!',
+                    method: chromePath ? 'chrome' : 'default_browser',
+                    playerActivated: false // Пока не активирован, но будет через 3 сек
+                  }
+                };
+              } else {
+                return { ok: false, error: `Found movie but failed to open browser: ${openResult.error}` };
+              }
+            } else {
+              return { ok: false, error: movieResult.speak };
+            }
+          } catch (error) {
+            return { ok: false, error: `Movie search error: ${error instanceof Error ? error.message : 'Unknown error'}` };
+          }
+
         case 'full_disk_search':
           if (!request.appName) {
             return { ok: false, error: 'App name is required for full_disk_search command' };

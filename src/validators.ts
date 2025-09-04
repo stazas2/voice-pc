@@ -25,7 +25,9 @@ export const commandSchema = z.object({
     // Context commands
     'repeat_last', 'close_last_opened', 'cancel_last',
     // Full disk search
-    'full_disk_search'
+    'full_disk_search',
+    // Movie search
+    'find_movie'
   ]),
   url: z.string().url().optional(),
   alias: z.string().min(1).optional(),
@@ -38,7 +40,10 @@ export const commandSchema = z.object({
   text: z.string().min(1).optional(), // for chrome_find_text, chrome_click_link
   profileName: z.string().min(1).optional(), // for activate_profile
   layout: z.enum(['split', 'quad', 'triple']).optional(), // for tile_windows
-  appName: z.string().min(1).optional() // for full_disk_search
+  appName: z.string().min(1).optional(), // for full_disk_search
+  movieTitle: z.string().min(1).optional(), // for find_movie
+  movieYear: z.number().min(1900).max(2030).optional(), // for find_movie
+  movieType: z.enum(['movie', 'series']).optional() // for find_movie
 }).strict();
 
 export const validateCommand = (data: unknown) => {

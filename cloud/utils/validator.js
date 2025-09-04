@@ -77,7 +77,9 @@ class Validator {
             // Context commands
             'repeat_last',
             'close_last_opened',
-            'cancel_last'
+            'cancel_last',
+            // Movie search
+            'find_movie'
         ];
     }
     

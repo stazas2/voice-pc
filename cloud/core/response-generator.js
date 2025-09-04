@@ -225,6 +225,27 @@ function generateResponse(commandPayload, result, userText) {
           'Готово! Откатился назад!'
         ]);
         
+      case 'find_movie':
+        const movieTitle = result.data?.title || 'фильм';
+        const movieYear = result.data?.year ? ` ${result.data.year} года` : '';
+        const playerActivated = result.details?.playerActivated;
+        
+        if (playerActivated) {
+          return '🎬 ' + getRandomResponse([
+            `"${movieTitle}"${movieYear} готов к просмотру! Можете управлять: "пауза видео", "играй"!`,
+            `Плеер "${movieTitle}"${movieYear} активирован! Говорите команды управления!`,
+            `"${movieTitle}"${movieYear} запущен и готов! Управляйте голосом!`,
+            `Отлично! "${movieTitle}"${movieYear} готов к командам! Приятного просмотра!`
+          ]);
+        } else {
+          return '🎬 ' + getRandomResponse([
+            `Открываю "${movieTitle}"${movieYear}! Приятного просмотра!`,
+            `Найден фильм "${movieTitle}"${movieYear}! Запускаю плеер!`,
+            `"${movieTitle}"${movieYear} загружается! Готовьте попкорн!`,
+            `Отличный выбор! "${movieTitle}"${movieYear} начинается!`
+          ]);
+        }
+
       case 'full_disk_search':
         if (result.details?.launched) {
           return '🔍 ' + getRandomResponse([

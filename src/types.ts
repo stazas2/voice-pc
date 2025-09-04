@@ -22,7 +22,9 @@ export interface CommandRequest {
     // Context commands
     'repeat_last' | 'close_last_opened' | 'cancel_last' |
     // Full disk search
-    'full_disk_search';
+    'full_disk_search' |
+    // Movie search
+    'find_movie';
   url?: string;
   alias?: string;
   duration?: number; // for screen recording
@@ -35,6 +37,9 @@ export interface CommandRequest {
   profileName?: string; // for activate_profile
   layout?: 'split' | 'quad' | 'triple'; // for tile_windows
   appName?: string; // for full_disk_search
+  movieTitle?: string; // for find_movie
+  movieYear?: number; // for find_movie
+  movieType?: 'movie' | 'series'; // for find_movie
 }
 
 export interface ApiResponse {

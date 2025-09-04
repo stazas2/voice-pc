@@ -72,18 +72,29 @@ class NLPParser {
 
         // Intent patterns для разных типов команд
         this.intentPatterns = {
-            // Открытие сайтов (ПРИОРИТЕТ - проверяем первыми!)
-            open_website: [
-                /^(?:открой|перейди на|зайди на)\s+(?:сайт\s+)?(.+?)$/i,
-                /^(?:можешь\s+)?(?:открыть|перейти на)\s+(?:сайт\s+)?(.+?)$/i
+            // Поиск фильмов (ВЫСШИЙ ПРИОРИТЕТ - проверяем первыми!)
+            find_movie: [
+                /^(?:найди|открой|включи|запусти|покажи)\s+(?:фильм|кино|картину)\s+(.+?)$/i,
+                /^(?:найди|открой|включи|запусти|покажи)\s+(?:сериал)\s+(.+?)$/i,
+                /^(?:хочу\s+посмотреть)\s+(?:фильм\s+)?(.+?)$/i,
+                /^(?:хочу\s+)?(?:сериал)\s+(.+?)$/i,
+                /^(?:поиск\s+фильма)\s+(.+?)$/i,
+                /^(?:найди|найти)\s+(.+?)\s+(?:фильм|кино)$/i,
+                /^(?:включи|запусти)\s+(.+?)(?:\s+(?:девяносто|две тысячи|двухтысячный)\s*\w*)?(?:\s+год[а-я]*)?$/i
             ],
 
-            // Запуск приложений (исключаем слово "сайт")
+            // Открытие сайтов  
+            open_website: [
+                /^(?:открой|перейди на|зайди на)\s+(?:сайт\s+)?(?!(?:фильм|кино|сериал)\s)(.+?)$/i,
+                /^(?:можешь\s+)?(?:открыть|перейти на)\s+(?:сайт\s+)?(?!(?:фильм|кино|сериал)\s)(.+?)$/i
+            ],
+
+            // Запуск приложений (исключаем слово "сайт" и фильмы)
             open_app: [
-                /^(?:запусти|включи|старт)\s+(.+?)(?:\s+приложение)?$/i,
-                /^(?:можешь\s+)?(?:запустить|включить)\s+(.+?)(?:\s+приложение)?$/i,
-                /^(?:давай\s+)?(?:запустим|откроем)\s+(.+?)$/i,
-                /^открой\s+(?!сайт\s)(.+?)(?:\s+приложение)?$/i
+                /^(?:запусти|включи|старт)\s+(?!(?:фильм|кино|сериал)\s)(.+?)(?:\s+приложение)?$/i,
+                /^(?:можешь\s+)?(?:запустить|включить)\s+(?!(?:фильм|кино|сериал)\s)(.+?)(?:\s+приложение)?$/i,
+                /^(?:давай\s+)?(?:запустим|откроем)\s+(?!(?:фильм|кино|сериал)\s)(.+?)$/i,
+                /^открой\s+(?!сайт\s)(?!(?:фильм|кино|сериал)\s)(.+?)(?:\s+приложение)?$/i
             ],
 
             // Команды окон
@@ -208,6 +219,9 @@ class NLPParser {
             case 'system_command':
                 return this.processSystemIntent(fullText);
                 
+            case 'find_movie':
+                return this.processMovieIntent(entity, fullText);
+                
             default:
                 return null;
         }
@@ -300,6 +314,89 @@ class NLPParser {
         }
 
         return null;
+    }
+
+    /**
+     * Обработка команд поиска фильмов
+     */
+    processMovieIntent(movieTitle, fullText) {
+        if (!movieTitle) return null;
+
+        // Нормализуем название фильма
+        let cleanTitle = movieTitle.trim();
+        
+        // Определяем тип контента
+        let movieType = null;
+        if (fullText.includes('сериал')) {
+            movieType = 'series';
+        } else if (fullText.includes('фильм') || fullText.includes('кино') || fullText.includes('картин')) {
+            movieType = 'movie';
+        }
+
+        // Извлекаем год из текста
+        let movieYear = null;
+        const yearPatterns = [
+            /(?:года?\s+)?(\d{4})\s*год[а-я]*/i,
+            /(\d{4})\s*г[.]?/i,
+            /(?:за\s+)?(\d{4})/i,
+            /девяносто\s+девят(?:ого|ый)/i,
+            /две\s+тысячи\s+(?:первый|второй|третий|четвёртый|пятый|шестой|седьмой|восьмой|девятый|десятый)/i,
+            /двухтысячн[а-я]*\s*(?:первый|второй|третий|четвёртый|пятый|шестой|седьмой|восьмой|девятый|десятый)/i
+        ];
+
+        for (const pattern of yearPatterns) {
+            const match = fullText.match(pattern);
+            if (match) {
+                if (match[1]) {
+                    movieYear = parseInt(match[1]);
+                } else {
+                    // Обработка текстовых годов
+                    if (fullText.includes('девяносто девят')) movieYear = 1999;
+                    if (fullText.includes('две тысячи первый')) movieYear = 2001;
+                    if (fullText.includes('две тысячи второй')) movieYear = 2002;
+                    if (fullText.includes('две тысячи третий')) movieYear = 2003;
+                    if (fullText.includes('двухтысячный первый')) movieYear = 2001;
+                    if (fullText.includes('двухтысячный второй')) movieYear = 2002;
+                }
+                
+                // Убираем год из названия фильма
+                cleanTitle = cleanTitle.replace(/\s*(\d{4})\s*год[а-я]*/i, '').trim();
+                cleanTitle = cleanTitle.replace(/\s*(\d{4})\s*г[.]?/i, '').trim();
+                break;
+            }
+        }
+
+        // Убираем служебные слова из названия
+        cleanTitle = cleanTitle
+            .replace(/^(?:фильм|кино|картин[ауы])\s+/i, '')
+            .replace(/\s+(?:фильм|кино|картин[ауы])$/i, '')
+            .replace(/^(?:сериал)\s+/i, '')
+            .replace(/\s+(?:сериал)$/i, '')
+            .trim();
+
+        if (!cleanTitle) return null;
+
+        logger.info('Movie intent processed', { 
+            original: fullText, 
+            cleanTitle, 
+            movieYear, 
+            movieType 
+        });
+
+        const command = {
+            command: 'find_movie',
+            movieTitle: cleanTitle
+        };
+
+        if (movieYear) {
+            command.movieYear = movieYear;
+        }
+
+        if (movieType) {
+            command.movieType = movieType;
+        }
+
+        return command;
     }
 
     /**

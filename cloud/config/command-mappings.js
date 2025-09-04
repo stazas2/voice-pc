@@ -327,6 +327,19 @@ const COMMAND_MAPPINGS = {
   'отменить': { command: 'cancel_last' },
   'назад': { command: 'cancel_last' },
 
+  // Поиск фильмов
+  'найди фильм': { command: 'find_movie' },
+  'найди кино': { command: 'find_movie' },
+  'открой фильм': { command: 'find_movie' },
+  'включи фильм': { command: 'find_movie' },
+  'хочу посмотреть': { command: 'find_movie' },
+  'покажи фильм': { command: 'find_movie' },
+  'запусти фильм': { command: 'find_movie' },
+  'поиск фильма': { command: 'find_movie' },
+  'найди сериал': { command: 'find_movie' },
+  'включи сериал': { command: 'find_movie' },
+  'хочу сериал': { command: 'find_movie' },
+
   // Fallback команды
   'тест': { command: 'say_ok' },
   'проверка': { command: 'say_ok' },
