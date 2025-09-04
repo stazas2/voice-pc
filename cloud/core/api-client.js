@@ -2,6 +2,7 @@
 const config = require('../config/config');
 const logger = require('../utils/logger');
 const validator = require('../utils/validator');
+const { createSecureRequest } = require('../utils/hmac');
 
 function sendToPC(commandPayload) {
   return new Promise((resolve, reject) => {
@@ -21,10 +22,12 @@ function sendToPC(commandPayload) {
 
     const url = require('url');
     const fullUrl = config.serverUrl + config.apiEndpoint;
-    const requestData = JSON.stringify(commandPayload);
     const parsedUrl = url.parse(fullUrl);
     
-    logger.debug('Sending command to PC', { url: fullUrl, command: commandPayload.command });
+    // Создаем безопасный запрос с HMAC подписью
+    const secureRequest = createSecureRequest(commandPayload, config.authToken);
+    
+    logger.debug('Sending secure command to PC', { url: fullUrl, command: commandPayload.command });
     
     // Выбираем нужный модуль в зависимости от протокола
     const httpModule = parsedUrl.protocol === 'https:' ? require('https') : require('http');
@@ -35,10 +38,8 @@ function sendToPC(commandPayload) {
       path: parsedUrl.path,
       method: 'POST',
       headers: {
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(requestData),
-        'User-Agent': 'Voice-PC-Cloud-Function/1.0',
-        'X-ALICE-TOKEN': config.authToken
+        ...secureRequest.headers,
+        'Content-Length': Buffer.byteLength(secureRequest.body)
       },
       timeout: config.timeout || 5000
     };
@@ -55,6 +56,13 @@ function sendToPC(commandPayload) {
           
           if (res.statusCode >= 200 && res.statusCode < 300) {
             resolve(result);
+          } else if (result && result.needsConfirmation) {
+            // Специальный случай: запрос подтверждения не является ошибкой
+            logger.info('PC server requests confirmation', { 
+              statusCode: res.statusCode, 
+              action: result.confirmationAction 
+            });
+            resolve(result);
           } else {
             logger.warn('PC server error response', { statusCode: res.statusCode, data });
             reject(new Error(`Server returned status ${res.statusCode}: ${data}`));
@@ -67,7 +75,7 @@ function sendToPC(commandPayload) {
     });
 
     req.on('error', reject);
-    req.write(requestData);
+    req.write(secureRequest.body);
     req.end();
   });
 }

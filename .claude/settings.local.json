@@ -59,7 +59,15 @@
       "Bash(start chrome)",
       "Bash(tasklist:*)",
       "Bash(start start-voice-pc-final.bat:*)",
-      "Bash(start chrome:*)"
+      "Bash(start chrome:*)",
+      "Bash(npm run lint)",
+      "Bash(PORT=3001 node dist/server.js)",
+      "Bash(PORT=3002 node dist/server.js)",
+      "Bash(PORT=3003 node dist/server.js)",
+      "WebFetch(domain:localhost)",
+      "Bash(where steam)",
+      "Bash(del test-yandex-music.js test-yandex-music-app.js test-discord-app.js test-cloud-simple.js test-env-debug.js test-full-search.js test-nonexistent-app.js test-search-simple.js)",
+      "Bash(PORT=3003 node cloud/index.js)"
     ],
     "deny": [],
     "ask": []

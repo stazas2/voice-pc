@@ -16,6 +16,11 @@ function getCategoryResponse(category, fallback = 'success') {
 }
 
 function generateResponse(commandPayload, result, userText) {
+  // Специальная обработка для запросов подтверждения
+  if (result.needsConfirmation) {
+    return result.error; // Здесь error содержит сообщение подтверждения
+  }
+  
   if (result.ok) {
     switch (commandPayload.command) {
       // Базовые команды с эмоциональными ответами
@@ -196,6 +201,48 @@ function generateResponse(commandPayload, result, userText) {
           'Всё на своих местах!',
           'Красота и функциональность!'
         ]);
+        
+      // Context commands
+      case 'repeat_last':
+        return '🔄 ' + getRandomResponse([
+          'Повторяю последнюю команду!',
+          'Ещё раз то же самое!',
+          'Повтор последней команды!',
+          'Дублирую прошлое действие!'
+        ]);
+      case 'close_last_opened':
+        return '❌ ' + getRandomResponse([
+          'Закрываю последнее открытое!',
+          'Убираю последнее приложение!',
+          'Последнее окно закрывается!',
+          'Очищаю рабочее пространство!'
+        ]);
+      case 'cancel_last':
+        return '↩️ ' + getRandomResponse([
+          'Последнее действие отменено!',
+          'Вернул как было!',
+          'Отменил последнюю команду!',
+          'Готово! Откатился назад!'
+        ]);
+        
+      case 'full_disk_search':
+        if (result.details?.launched) {
+          return '🔍 ' + getRandomResponse([
+            `Нашла ${result.details.appName} и запустила! Поиск по дискам помог!`,
+            `Отлично! ${result.details.appName} найдено и открыто. Глубокий поиск сработал!`,
+            `Ура! Приложение найдено на диске и запущено. Терпение окупилось!`
+          ]);
+        } else {
+          return '🔍 ' + getRandomResponse([
+            `Поиск завершён, но ${result.details.appName} найти не удалось.`,
+            `Обыскала все диски, но приложение не обнаружено.`,
+            `К сожалению, даже глубокий поиск не помог найти программу.`
+          ]);
+        }
+        
+      case 'unknown_command':
+        // Обработка неизвестных команд с более дружелюбным ответом
+        return getRandomResponse(config.responses.unknownCommand);
         
       case 'say_ok':
       default:

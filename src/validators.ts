@@ -17,11 +17,15 @@ export const commandSchema = z.object({
     // Notion integration
     'notion_today_tasks', 'notion_upcoming_events', 'notion_create_task',
     // Chrome control
-    'chrome_new_tab', 'chrome_close_tab', 'chrome_refresh', 'chrome_fullscreen_media', 'chrome_media_pause',
+    'chrome_new_tab', 'chrome_close_tab', 'chrome_refresh', 'chrome_fullscreen_media', 'chrome_fullscreen_browser', 'chrome_media_pause',
     // Chrome CDP advanced
     'chrome_scroll_down', 'chrome_scroll_up', 'chrome_click_link', 'chrome_find_text',
     // Profile system
-    'activate_profile', 'tile_windows'
+    'activate_profile', 'tile_windows',
+    // Context commands
+    'repeat_last', 'close_last_opened', 'cancel_last',
+    // Full disk search
+    'full_disk_search'
   ]),
   url: z.string().url().optional(),
   alias: z.string().min(1).optional(),
@@ -33,7 +37,8 @@ export const commandSchema = z.object({
   dueDate: z.string().optional(), // for notion_create_task
   text: z.string().min(1).optional(), // for chrome_find_text, chrome_click_link
   profileName: z.string().min(1).optional(), // for activate_profile
-  layout: z.enum(['split', 'quad', 'triple']).optional() // for tile_windows
+  layout: z.enum(['split', 'quad', 'triple']).optional(), // for tile_windows
+  appName: z.string().min(1).optional() // for full_disk_search
 }).strict();
 
 export const validateCommand = (data: unknown) => {

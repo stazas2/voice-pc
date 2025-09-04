@@ -1,0 +1,64 @@
+{
+  "apps": {
+    "notepad": {
+      "name": "Блокнот",
+      "path": "notepad.exe",
+      "description": "Текстовый редактор Windows"
+    },
+    "calculator": {
+      "name": "Калькулятор",
+      "path": "calc.exe",
+      "description": "Калькулятор Windows"
+    },
+    "chrome": {
+      "name": "Google Chrome",
+      "path": "chrome.exe",
+      "description": "Веб-браузер"
+    },
+    "firefox": {
+      "name": "Mozilla Firefox",
+      "path": "firefox.exe",
+      "description": "Веб-браузер Firefox"
+    },
+    "explorer": {
+      "name": "Проводник",
+      "path": "explorer.exe",
+      "description": "Файловый менеджер Windows"
+    },
+    "cmd": {
+      "name": "Командная строка",
+      "path": "cmd.exe",
+      "description": "Командная строка Windows"
+    },
+    "powershell": {
+      "name": "PowerShell",
+      "path": "powershell.exe",
+      "description": "Командная оболочка PowerShell"
+    },
+    "paint": {
+      "name": "Paint",
+      "path": "mspaint.exe",
+      "description": "Графический редактор Paint"
+    },
+    "wordpad": {
+      "name": "WordPad",
+      "path": "wordpad.exe",
+      "description": "Текстовый редактор WordPad"
+    },
+    "mstsc": {
+      "name": "Удалённый рабочий стол",
+      "path": "mstsc.exe",
+      "description": "Подключение к удалённому рабочему столу"
+    },
+    "steam": {
+      "name": "Steam",
+      "path": "E:\\SteamLibrary\\steam.exe",
+      "description": "Игровая платформа Steam"
+    },
+    "viber": {
+      "name": "Viber",
+      "path": "C:\\Users\\malys\\AppData\\Local\\Viber\\Viber.exe",
+      "description": "Мессенджер Viber"
+    }
+  }
+}

@@ -7,6 +7,15 @@ const LOG_FILE = path.join(LOG_DIR, 'actions.log');
 const MAX_LOG_SIZE = 5 * 1024 * 1024; // 5MB
 
 export class Logger {
+  private metrics = {
+    totalRequests: 0,
+    successfulCommands: 0,
+    failedCommands: 0,
+    responseTimes: [] as number[],
+    commandCounts: new Map<string, number>(),
+    lastCommandTime: 0
+  };
+
   constructor() {
     this.ensureLogDir();
   }
@@ -33,6 +42,31 @@ export class Logger {
   logAction(entry: LogEntry): void {
     this.rotateLog();
     
+    // Update metrics
+    this.metrics.totalRequests++;
+    
+    if (entry.result === 'success') {
+      this.metrics.successfulCommands++;
+    } else if (entry.result === 'error') {
+      this.metrics.failedCommands++;
+    }
+
+    // Track command counts
+    if (entry.command) {
+      const currentCount = this.metrics.commandCounts.get(entry.command) || 0;
+      this.metrics.commandCounts.set(entry.command, currentCount + 1);
+    }
+
+    // Track response times (keep only last 100 for memory efficiency)
+    if (typeof entry.payload === 'object' && entry.payload?.responseTime) {
+      this.metrics.responseTimes.push(entry.payload.responseTime);
+      if (this.metrics.responseTimes.length > 100) {
+        this.metrics.responseTimes.shift();
+      }
+    }
+
+    this.metrics.lastCommandTime = Date.now();
+    
     const logLine = JSON.stringify({
       ...entry,
       timestamp: new Date().toISOString()
@@ -45,6 +79,37 @@ export class Logger {
     }
   }
 
+  getMetrics() {
+    const responseTimes = this.metrics.responseTimes;
+    const avgResponseTime = responseTimes.length > 0 
+      ? Math.round(responseTimes.reduce((a, b) => a + b, 0) / responseTimes.length)
+      : 0;
+
+    // Calculate P95
+    let p95ResponseTime = 0;
+    if (responseTimes.length > 0) {
+      const sorted = [...responseTimes].sort((a, b) => a - b);
+      const p95Index = Math.ceil(sorted.length * 0.95) - 1;
+      p95ResponseTime = sorted[p95Index] || 0;
+    }
+
+    // Get top 5 commands
+    const topCommands = Array.from(this.metrics.commandCounts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 5)
+      .map(([command, count]) => ({ command, count }));
+
+    return {
+      totalRequests: this.metrics.totalRequests,
+      successfulCommands: this.metrics.successfulCommands,
+      failedCommands: this.metrics.failedCommands,
+      avgResponseTime,
+      p95ResponseTime: Math.round(p95ResponseTime),
+      lastCommandTime: this.metrics.lastCommandTime,
+      topCommands
+    };
+  }
+
   info(message: string, data?: any): void {
     const entry = {
       timestamp: new Date().toISOString(),
@@ -53,7 +118,10 @@ export class Logger {
       data
     };
     
-    console.log(`[INFO] ${entry.timestamp}: ${message}`, data ? JSON.stringify(data) : '');
+    // Выводим в консоль только в режиме разработки
+    if (process.env.NODE_ENV !== 'production') {
+      console.log(`[INFO] ${entry.timestamp}: ${message}`, data ? JSON.stringify(data) : '');
+    }
     
     try {
       fs.appendFileSync(LOG_FILE, JSON.stringify(entry) + '\n', 'utf8');

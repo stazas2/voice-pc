@@ -1,14 +1,14 @@
 // Конфигурация для Voice PC Cloud Function
 const config = {
-    // ОБЯЗАТЕЛЬНО: URL вашего домена
-    serverUrl: 'https://voice-pc.stazas2.space',
+    // ОБЯЗАТЕЛЬНО: URL вашего домена (из переменных окружения)
+    serverUrl: process.env.WEBHOOK_URL || 'http://localhost:3001',
     
     // API эндпоинт для отправки команд
     apiEndpoint: '/command',
     
     // Токен аутентификации для доступа к локальному серверу
     // ВАЖНО: Должен совпадать с ALICE_TOKEN на локальном сервере
-    authToken: 'VoicePC_SecureToken_2024_abcd1234efgh5678',
+    authToken: process.env.ALICE_TOKEN || 'VoicePC_SecureToken_2024_abcd1234efgh5678',
     
     // Таймаут запросов в миллисекундах
     timeout: 5000,

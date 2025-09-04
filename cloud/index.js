@@ -5,6 +5,7 @@ const { generateResponse } = require('./core/response-generator');
 const logger = require('./utils/logger');
 const validator = require('./utils/validator');
 const rateLimiter = require('./utils/rate-limiter');
+const confirmationManager = require('./utils/confirmation-manager');
 
 module.exports.handler = async (event, context) => {
     const startTime = Date.now();
@@ -26,7 +27,7 @@ module.exports.handler = async (event, context) => {
         }
 
         const req = validation.data;
-        const userText = req.request?.command || '';
+        const userText = req.request?.original_utterance || '';
         sessionId = req.session?.session_id || 'unknown';  // Присваиваем значение
         userId = req.session?.user_id || 'unknown';
 
@@ -45,9 +46,72 @@ module.exports.handler = async (event, context) => {
 
         logger.info('Processing command', { userText, sessionId, userId });
 
+        // Сначала проверяем, ожидается ли подтверждение команды
+        const confirmationResult = confirmationManager.checkConfirmationResponse(sessionId, userText);
+        if (confirmationResult) {
+            if (confirmationResult.type === 'confirmed') {
+                // Пользователь подтвердил команду/действие
+                logger.info('Executing confirmed action', { 
+                    sessionId, 
+                    command: confirmationResult.command,
+                    actionType: confirmationResult.actionType 
+                });
+                
+                let commandToSend;
+                
+                // Для специальных действий создаём команду
+                if (confirmationResult.command === 'full_disk_search') {
+                    commandToSend = {
+                        command: 'full_disk_search',
+                        appName: confirmationResult.payload.appName
+                    };
+                } else {
+                    // Обычные команды
+                    commandToSend = confirmationResult.payload;
+                }
+                
+                const result = await sendToPC(commandToSend);
+                const responseTime = Date.now() - startTime;
+                logger.logCommand(confirmationResult.command, confirmationResult.originalText, result.ok, responseTime);
+                
+                const responseText = generateResponse(commandToSend, result, confirmationResult.originalText);
+                return {
+                    response: {
+                        text: responseText,
+                        tts: responseText,
+                        end_session: false
+                    },
+                    version: '1.0'
+                };
+            } else {
+                // Отмена, повтор или таймаут
+                return {
+                    response: {
+                        text: confirmationResult.message,
+                        tts: confirmationResult.message,
+                        end_session: false
+                    },
+                    version: '1.0'
+                };
+            }
+        }
+
         // Парсим команду пользователя с учётом контекста
         const commandPayload = parseUserCommand(userText, sessionId);
         logger.debug('Command mapped', { commandPayload });
+
+        // Проверяем на неизвестную команду
+        if (commandPayload.command === 'unknown_command') {
+            logger.info('Unknown command received', { userText, sessionId });
+            const responseText = generateResponse(commandPayload, { ok: true }, userText);
+            return {
+                response: {
+                    text: responseText,
+                    end_session: false
+                },
+                version: '1.0'
+            };
+        }
 
         // Валидация команды
         const commandValidation = validator.validateCommand(commandPayload.command, userText);
@@ -65,9 +129,59 @@ module.exports.handler = async (event, context) => {
             };
         }
 
+        // Проверяем, нужно ли подтверждение для этой команды
+        if (confirmationManager.requiresConfirmation(commandPayload.command)) {
+            const confirmationMessage = confirmationManager.createConfirmationRequest(
+                sessionId, 
+                commandPayload.command, 
+                commandPayload, 
+                userText
+            );
+            
+            logger.info('Requesting confirmation for dangerous command', { 
+                sessionId, 
+                command: commandPayload.command 
+            });
+            
+            return {
+                response: {
+                    text: confirmationMessage,
+                    tts: confirmationMessage,
+                    end_session: false
+                },
+                version: '1.0'
+            };
+        }
+
         // Отправляем на локальный сервер
         const result = await sendToPC(commandPayload);
         logger.debug('PC response received', { result });
+
+        // Проверяем, нужно ли подтверждение
+        if (result.needsConfirmation && result.confirmationAction) {
+            logger.info('Command requires confirmation', {
+                action: result.confirmationAction,
+                data: result.confirmationData
+            });
+            
+            // Создаём запрос подтверждения
+            const confirmationMessage = confirmationManager.createConfirmationRequest(
+                sessionId,
+                result.confirmationAction, // full_disk_search
+                result.confirmationData,   // { appName: '...' }
+                userText,
+                result.confirmationAction  // actionType
+            );
+            
+            return {
+                response: {
+                    text: confirmationMessage,
+                    tts: confirmationMessage,
+                    end_session: false
+                },
+                version: '1.0'
+            };
+        }
 
         // Сохраняем команду в контекст
         saveCommand(sessionId, userText, commandPayload, result);

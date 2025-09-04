@@ -11,10 +11,10 @@ import { trayManager } from './tray-simple';
 import { dashboardManager } from './dashboard';
 
 // Load environment variables from project root
-const envPath = 'C:\\Users\\malys\\Desktop\\Alisa\\voice-pc\\.env';
-console.log('🔍 Loading .env from:', envPath);
+const envPath = process.env.DOTENV_PATH || path.resolve(__dirname, '..', '.env');
+logger.info('🔍 Loading .env from:', envPath);
 const result = dotenv.config({ path: envPath });
-console.log('🔍 dotenv result:', result.error ? result.error.message : 'success');
+logger.info('🔍 dotenv result:', result.error ? result.error.message : 'success');
 
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
@@ -52,6 +52,12 @@ app.use(security.logRequestMiddleware);
 // Apply rate limiting to all endpoints
 app.use(security.rateLimitMiddleware);
 
+// Apply HMAC verification for external requests
+app.use(security.hmacMiddleware);
+
+// Apply response caching for idempotency
+app.use(security.storeResponseMiddleware);
+
 // Routes
 
 // Health check endpoint (no auth required)
@@ -61,6 +67,40 @@ app.get('/health', (req: Request, res: Response<HealthResponse>) => {
     ok: true,
     uptime: Math.floor(uptime / 1000),
     ts: new Date().toISOString()
+  });
+});
+
+// Metrics endpoint (no auth required)
+app.get('/metrics', (req: Request, res: Response) => {
+  const uptime = Date.now() - serverStartTime;
+  const uptimeSeconds = Math.floor(uptime / 1000);
+  const metrics = logger.getMetrics();
+  
+  res.json({
+    ok: true,
+    service: 'Voice PC Controller',
+    version: '1.0.0',
+    timestamp: new Date().toISOString(),
+    uptime: {
+      seconds: uptimeSeconds,
+      human: `${Math.floor(uptimeSeconds / 3600)}h ${Math.floor((uptimeSeconds % 3600) / 60)}m ${uptimeSeconds % 60}s`
+    },
+    metrics: {
+      total_requests: metrics.totalRequests,
+      successful_commands: metrics.successfulCommands,
+      failed_commands: metrics.failedCommands,
+      error_rate: metrics.totalRequests > 0 ? 
+        ((metrics.failedCommands / metrics.totalRequests) * 100).toFixed(2) + '%' : '0%',
+      avg_response_time_ms: metrics.avgResponseTime,
+      p95_response_time_ms: metrics.p95ResponseTime,
+      last_command_time: metrics.lastCommandTime ? new Date(metrics.lastCommandTime).toISOString() : null,
+      top_commands: metrics.topCommands
+    },
+    system: {
+      memory_usage: process.memoryUsage(),
+      node_version: process.version,
+      platform: process.platform
+    }
   });
 });
 

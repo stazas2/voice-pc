@@ -47,11 +47,31 @@ const COMMAND_MAPPINGS = {
   'запусти паверши': { command: 'open_app', alias: 'powershell' },
   'открой паверши': { command: 'open_app', alias: 'powershell' },
   
+  // Дополнительные приложения (гибкий запуск)
+  'запусти ворд': { command: 'open_app', alias: 'winword' },
+  'открой ворд': { command: 'open_app', alias: 'winword' },
+  'запусти эксель': { command: 'open_app', alias: 'excel' },
+  'открой эксель': { command: 'open_app', alias: 'excel' },
+  'запусти презентации': { command: 'open_app', alias: 'powerpnt' },
+  'открой пауэрпоинт': { command: 'open_app', alias: 'powerpnt' },
+  'запусти скайп': { command: 'open_app', alias: 'skype' },
+  'открой скайп': { command: 'open_app', alias: 'skype' },
+  'запусти дискорд': { command: 'open_app', alias: 'discord' },
+  'открой дискорд': { command: 'open_app', alias: 'discord' },
+  'запусти телеграм': { command: 'open_app', alias: 'telegram' },
+  'открой телеграм': { command: 'open_app', alias: 'telegram' },
+  'запусти спотифай': { command: 'open_app', alias: 'spotify' },
+  'открой спотифай': { command: 'open_app', alias: 'spotify' },
+  'запусти стим': { command: 'open_app', alias: 'steam' },
+  'открой стим': { command: 'open_app', alias: 'steam' },
+  'запусти фотошоп': { command: 'open_app', alias: 'photoshop' },
+  'открой фотошоп': { command: 'open_app', alias: 'photoshop' },
+  
   // Медиа управление
-  'пауза на пк': { command: 'media_pause' },
+  'остановки музыку': { command: 'media_pause' },
   'поставь на паузу на компьютере': { command: 'media_pause' },
   'продолжи на пк': { command: 'media_play' },
-  'продолжи воспроизведение на компьютере': { command: 'media_play' },
+  'продолжи музыку': { command: 'media_play' },
   'играй на пк': { command: 'media_play' },
   'следующий трек на пк': { command: 'media_next' },
   'следующая песня на компьютере': { command: 'media_next' },
@@ -296,6 +316,17 @@ const COMMAND_MAPPINGS = {
   'четыре окна': { command: 'tile_windows', layout: 'quad' },
   'квадрат окон': { command: 'tile_windows', layout: 'quad' },
   
+  // Контекстные команды
+  'повтори': { command: 'repeat_last' },
+  'повтори команду': { command: 'repeat_last' },
+  'повтори последнее': { command: 'repeat_last' },
+  'закрой последнее': { command: 'close_last_opened' },
+  'закрой последнее открытое': { command: 'close_last_opened' },
+  'отмени': { command: 'cancel_last' },
+  'отмени последнюю команду': { command: 'cancel_last' },
+  'отменить': { command: 'cancel_last' },
+  'назад': { command: 'cancel_last' },
+
   // Fallback команды
   'тест': { command: 'say_ok' },
   'проверка': { command: 'say_ok' },

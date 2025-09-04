@@ -1,5 +1,6 @@
 import fs from 'fs';
 import path from 'path';
+import { logger } from './logger';
 
 export interface ParsedCommand {
   phrase: string;
@@ -244,7 +245,11 @@ export class CommandMappingParser {
       'empty_recycle_bin': 'Очистить корзину',
       'close_window': 'Закрыть окно приложения',
       'focus_window': 'Переключиться на приложение',
-      'maximize_window': 'Развернуть окно'
+      'maximize_window': 'Развернуть окно',
+      // Контекстные команды
+      'repeat_last': 'Повторить последнюю команду',
+      'close_last_opened': 'Закрыть последнее открытое приложение', 
+      'cancel_last': 'Отменить последнее действие'
     };
     
     return descriptions[command] || command;
@@ -263,9 +268,9 @@ export class CommandMappingParser {
       // Write to file
       fs.writeFileSync(this.mappingsPath, newContent);
       
-      console.log('Command mappings saved successfully');
+      logger.info('Command mappings saved successfully');
     } catch (error) {
-      console.error('Error saving command mappings:', error);
+      logger.error('Error saving command mappings:', error);
       throw error;
     }
   }

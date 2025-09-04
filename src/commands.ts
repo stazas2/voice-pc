@@ -21,7 +21,7 @@ try {
 const execFileAsync = promisify(execFile);
 
 export class WindowsCommands {
-  private appsConfig: Record<string, string> = {};
+  private appsConfig: Record<string, { name: string; path: string; description: string } | string> = {};
 
   constructor() {
     this.loadAppsConfig();
@@ -165,7 +165,8 @@ export class WindowsCommands {
     try {
       const configPath = require('path').join(__dirname, '..', 'config', 'apps.json');
       const configData = fs.readFileSync(configPath, 'utf8');
-      this.appsConfig = JSON.parse(configData);
+      const parsedConfig = JSON.parse(configData);
+      this.appsConfig = parsedConfig.apps || parsedConfig;
       logger.info('Apps configuration loaded', { appCount: Object.keys(this.appsConfig).length });
     } catch (error) {
       logger.error('Failed to load apps configuration', error);
@@ -345,14 +346,17 @@ export class WindowsCommands {
             return { ok: false, error: 'Alias is required for open_app command' };
           }
 
-          const appPath = this.appsConfig[request.alias.toLowerCase()];
-          if (!appPath) {
-            return { 
-              ok: false, 
-              error: `Unknown app alias: ${request.alias}. Available: ${Object.keys(this.appsConfig).join(', ')}` 
-            };
+          const appInfo = this.appsConfig[request.alias.toLowerCase()];
+          let appPath: string;
+          
+          if (appInfo) {
+            // Found in configured apps
+            appPath = typeof appInfo === 'string' ? appInfo : appInfo.path;
+          } else {
+            // Fallback: try to run as direct executable name
+            appPath = request.alias.endsWith('.exe') ? request.alias : `${request.alias}.exe`;
+            logger.info(`App alias not found, attempting direct execution: ${appPath}`);
           }
-
           const expandedPath = this.expandPath(appPath);
           
           // Check if it's a simple executable name or full path
@@ -378,6 +382,20 @@ export class WindowsCommands {
               } 
             };
           } else {
+            // Если обычный запуск не удался, предлагаем полный поиск
+            const enableFullSearch = process.env.ENABLE_FULL_DISK_SEARCH === 'true';
+            if (enableFullSearch && !appInfo) {
+              logger.info(`App ${request.alias} failed to start, checking if full search is available`);
+              
+              // Возвращаем специальную ошибку, которая запросит подтверждение
+              return { 
+                ok: false, 
+                error: `App "${request.alias}" not found. Search all drives?`,
+                needsConfirmation: true,
+                confirmationAction: 'full_disk_search',
+                confirmationData: { appName: request.alias }
+              };
+            }
             return { ok: false, error: `Failed to open app: ${appResult.error}` };
           }
 
@@ -655,12 +673,22 @@ export class WindowsCommands {
             { ok: false, error: `Failed to refresh page: ${refreshResult.error}` };
             
         case 'chrome_fullscreen_media':
-          // Просто отправляем 'f' для переключения fullscreen (работает на любой медиа странице)
-          const fullscreenResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait("f")'], 3000);
-          
+          // Фокус на Chrome как у других команд, затем 'f'
+          await this.executePowerShellCommand({ command: 'focus_window', processName: 'chrome' } as CommandRequest);
+          await new Promise(resolve => setTimeout(resolve, 300));
+          const fullscreenResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\\"f\\")'], 3000);
           return fullscreenResult.success ? 
-            { ok: true, action: 'chrome_fullscreen_media', details: { message: 'Media fullscreen toggled' } } :
-            { ok: false, error: `Failed to toggle fullscreen: ${fullscreenResult.error}` };
+            { ok: true, action: 'chrome_fullscreen_media', details: { message: 'Media fullscreen toggled (f)' } } :
+            { ok: false, error: `Failed to toggle media fullscreen: ${fullscreenResult.error}` };
+
+        case 'chrome_fullscreen_browser':
+          // F11 для полноэкранного режима браузера как у других команд
+          await this.executePowerShellCommand({ command: 'focus_window', processName: 'chrome' } as CommandRequest);
+          await new Promise(resolve => setTimeout(resolve, 300));
+          const browserFullscreenResult = await this.executeCommand('powershell', ['-Command', 'Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait(\\"{F11}\\")'], 3000);
+          return browserFullscreenResult.success ? 
+            { ok: true, action: 'chrome_fullscreen_browser', details: { message: 'Browser fullscreen toggled (F11)' } } :
+            { ok: false, error: `Failed to toggle browser fullscreen: ${browserFullscreenResult.error}` };
 
         case 'chrome_media_pause':
           // Универсальная пауза для браузерных видео (YouTube, Netflix и т.д.) - пробел
@@ -761,6 +789,70 @@ export class WindowsCommands {
             return { ok: false, error: `Window tiling error: ${error instanceof Error ? error.message : 'Unknown error'}` };
           }
           
+        // Context commands
+        case 'repeat_last':
+          // TODO: Implement repeat last command logic
+          return { 
+            ok: true, 
+            action: 'repeat_last', 
+            details: { message: 'Repeat last command functionality not yet implemented' } 
+          };
+          
+        case 'close_last_opened':
+          // TODO: Implement close last opened logic
+          return { 
+            ok: true, 
+            action: 'close_last_opened', 
+            details: { message: 'Close last opened functionality not yet implemented' } 
+          };
+          
+        case 'cancel_last':
+          // TODO: Implement cancel last command logic
+          return { 
+            ok: true, 
+            action: 'cancel_last', 
+            details: { message: 'Cancel last command functionality not yet implemented' } 
+          };
+          
+        case 'full_disk_search':
+          if (!request.appName) {
+            return { ok: false, error: 'App name is required for full_disk_search command' };
+          }
+
+          const enableFullSearch = process.env.ENABLE_FULL_DISK_SEARCH === 'true';
+          if (!enableFullSearch) {
+            return { ok: false, error: 'Full disk search is disabled' };
+          }
+
+          logger.info(`Starting full disk search for: ${request.appName}`);
+          const foundPath = await this.fullDiskSearch(request.appName, true);
+          
+          if (foundPath) {
+            // Приложение найдено, пробуем запустить
+            const searchResult = await this.executeCommand('start', ['""', `"${foundPath}"`], 5000);
+            if (searchResult.success) {
+              return { 
+                ok: true, 
+                action: 'full_disk_search', 
+                details: { 
+                  appName: request.appName,
+                  foundPath: foundPath,
+                  launched: true 
+                } 
+              };
+            } else {
+              return { 
+                ok: false, 
+                error: `Found app at ${foundPath} but failed to launch: ${searchResult.error}` 
+              };
+            }
+          } else {
+            return { 
+              ok: false, 
+              error: `App "${request.appName}" not found on any drive` 
+            };
+          }
+
         default:
           return { ok: false, error: `Unknown command: ${request.command}` };
       }
@@ -776,6 +868,97 @@ export class WindowsCommands {
 
   reloadConfig(): void {
     this.loadAppsConfig();
+  }
+
+  /**
+   * Полный поиск приложения по всем дискам
+   */
+  async fullDiskSearch(appName: string, enableFullSearch: boolean = true): Promise<string | null> {
+    if (!enableFullSearch) {
+      logger.info(`Full disk search disabled for: ${appName}`);
+      return null;
+    }
+
+    logger.info(`Starting full disk search for: ${appName}`);
+    
+    try {
+      // Получаем список всех дисков
+      const drives = await this.getSystemDrives();
+      logger.info(`Searching on drives: ${drives.join(', ')}`);
+
+      for (const drive of drives) {
+        logger.info(`Searching on drive ${drive} for ${appName}...`);
+        
+        // Поиск по основным папкам сначала (быстрее)
+        const quickPaths = [
+          `${drive}Program Files`,
+          `${drive}Program Files (x86)`,
+          `${drive}Users\\${process.env.USERNAME}\\AppData\\Local`,
+          `${drive}ProgramData`
+        ];
+
+        for (const basePath of quickPaths) {
+          const result = await this.searchInDirectory(basePath, `${appName}.exe`);
+          if (result) {
+            logger.info(`Found ${appName} at: ${result}`);
+            return result;
+          }
+        }
+      }
+
+      logger.warn(`Full disk search completed, ${appName} not found`);
+      return null;
+      
+    } catch (error) {
+      logger.error('Full disk search failed', error);
+      return null;
+    }
+  }
+
+  /**
+   * Получить список системных дисков
+   */
+  private async getSystemDrives(): Promise<string[]> {
+    try {
+      const result = await this.executeCommand('wmic', ['logicaldisk', 'get', 'caption'], 5000);
+      if (!result.success || !result.output) return ['C:\\'];
+      
+      const drives = result.output
+        .split('\n')
+        .map(line => line.trim())
+        .filter(line => line.match(/^[A-Z]:$/))
+        .map(drive => `${drive}\\`);
+        
+      return drives.length > 0 ? drives : ['C:\\'];
+    } catch (error) {
+      logger.error('Failed to get system drives', error);
+      return ['C:\\'];
+    }
+  }
+
+  /**
+   * Поиск файла в директории
+   */
+  private async searchInDirectory(basePath: string, fileName: string): Promise<string | null> {
+    try {
+      // Используем dir с рекурсивным поиском, но ограничиваем глубину
+      const result = await this.executeCommand(
+        'cmd', 
+        ['/c', `dir "${basePath}\\${fileName}" /s /b 2>nul`], 
+        30000 // 30 секунд таймаут
+      );
+      
+      if (result.success && result.output && result.output.trim()) {
+        const paths = result.output.trim().split('\n');
+        // Возвращаем первый найденный путь
+        return paths[0].trim();
+      }
+      
+      return null;
+    } catch (error) {
+      // Молча игнорируем ошибки поиска в недоступных папках
+      return null;
+    }
   }
 }
 

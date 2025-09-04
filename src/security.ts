@@ -1,16 +1,23 @@
 import { Request, Response, NextFunction } from 'express';
+import { createHmac, timingSafeEqual } from 'crypto';
 import { RateLimitEntry } from './types';
 import { logger } from './logger';
 
 const RATE_LIMIT_WINDOW = 60 * 1000; // 1 minute
 const MAX_REQUESTS_PER_WINDOW = 50; // Increased for dashboard usage
+const TIMESTAMP_TOLERANCE = 5 * 60 * 1000; // 5 minutes tolerance for timestamp
+const IDEMPOTENCY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes TTL for idempotency cache
 
 export class SecurityManager {
   private rateLimits: Map<string, RateLimitEntry> = new Map();
+  private idempotencyCache: Map<string, { timestamp: number; response: any }> = new Map();
 
   constructor(private aliceToken: string) {
-    // Clean up rate limits every 5 minutes
-    setInterval(() => this.cleanupRateLimits(), 5 * 60 * 1000);
+    // Clean up rate limits and idempotency cache every 5 minutes
+    setInterval(() => {
+      this.cleanupRateLimits();
+      this.cleanupIdempotencyCache();
+    }, 5 * 60 * 1000);
   }
 
   private cleanupRateLimits(): void {
@@ -20,6 +27,50 @@ export class SecurityManager {
         this.rateLimits.delete(ip);
       }
     }
+  }
+
+  private cleanupIdempotencyCache(): void {
+    const now = Date.now();
+    for (const [requestId, entry] of this.idempotencyCache.entries()) {
+      if (now - entry.timestamp > IDEMPOTENCY_CACHE_TTL) {
+        this.idempotencyCache.delete(requestId);
+      }
+    }
+  }
+
+  private generateHmacSignature(body: string, timestamp: string): string {
+    const payload = `${timestamp}.${body}`;
+    return createHmac('sha256', this.aliceToken).update(payload).digest('hex');
+  }
+
+  private verifyHmacSignature(signature: string, body: string, timestamp: string): boolean {
+    if (!signature || !timestamp) {
+      return false;
+    }
+
+    const expectedSignature = this.generateHmacSignature(body, timestamp);
+    const providedSignature = signature.replace('sha256=', '');
+    
+    if (expectedSignature.length !== providedSignature.length) {
+      return false;
+    }
+
+    return timingSafeEqual(
+      Buffer.from(expectedSignature, 'hex'),
+      Buffer.from(providedSignature, 'hex')
+    );
+  }
+
+  private isTimestampValid(timestamp: string): boolean {
+    const now = Date.now();
+    const requestTime = parseInt(timestamp) * 1000; // Convert from seconds to milliseconds
+    
+    if (isNaN(requestTime)) {
+      return false;
+    }
+
+    const timeDiff = Math.abs(now - requestTime);
+    return timeDiff <= TIMESTAMP_TOLERANCE;
   }
 
   private getClientIp(req: Request): string {
@@ -69,6 +120,64 @@ export class SecurityManager {
     next();
   };
 
+  hmacMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+    // Skip HMAC for local requests (dashboard, health checks)
+    const ip = this.getClientIp(req);
+    if (ip === '127.0.0.1' || ip === '::1' || ip === 'unknown' || req.path === '/health' || req.path === '/status') {
+      next();
+      return;
+    }
+
+    const signature = req.headers['x-signature'] as string;
+    const timestamp = req.headers['x-timestamp'] as string;
+    const requestId = req.headers['x-request-id'] as string;
+
+    // Check for required headers
+    if (!signature || !timestamp) {
+      logger.error('Missing HMAC headers', { ip, path: req.path });
+      res.status(400).json({
+        ok: false,
+        error: 'Missing X-Signature or X-Timestamp headers'
+      });
+      return;
+    }
+
+    // Validate timestamp
+    if (!this.isTimestampValid(timestamp)) {
+      logger.error('Invalid timestamp', { ip, timestamp, path: req.path });
+      res.status(400).json({
+        ok: false,
+        error: 'Request timestamp is too old or invalid'
+      });
+      return;
+    }
+
+    // Verify HMAC signature
+    const body = JSON.stringify(req.body);
+    if (!this.verifyHmacSignature(signature, body, timestamp)) {
+      logger.error('Invalid HMAC signature', { ip, path: req.path });
+      res.status(401).json({
+        ok: false,
+        error: 'Invalid signature'
+      });
+      return;
+    }
+
+    // Store request ID for idempotency if provided
+    if (requestId) {
+      const cachedResponse = this.idempotencyCache.get(requestId);
+      if (cachedResponse) {
+        logger.info('Returning cached response for idempotent request', { requestId, ip });
+        res.json(cachedResponse!.response);
+        return;
+      }
+      // Store request ID in request for later use
+      (req as any).requestId = requestId;
+    }
+
+    next();
+  };
+
   authMiddleware = (req: Request, res: Response, next: NextFunction): void => {
     const token = req.headers['x-alice-token'] as string;
     
@@ -86,6 +195,27 @@ export class SecurityManager {
       return;
     }
 
+    next();
+  };
+
+  storeResponseMiddleware = (req: Request, res: Response, next: NextFunction): void => {
+    const requestId = (req as any).requestId;
+    
+    if (requestId) {
+      // Override res.json to cache the response
+      const originalJson = res.json.bind(res);
+      res.json = (data: any) => {
+        // Cache successful responses only
+        if (data.ok !== false) {
+          this.idempotencyCache.set(requestId, {
+            timestamp: Date.now(),
+            response: data
+          });
+        }
+        return originalJson(data);
+      };
+    }
+    
     next();
   };
 

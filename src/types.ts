@@ -14,11 +14,15 @@ export interface CommandRequest {
     // Notion integration
     'notion_today_tasks' | 'notion_upcoming_events' | 'notion_create_task' |
     // Chrome control
-    'chrome_new_tab' | 'chrome_close_tab' | 'chrome_refresh' | 'chrome_fullscreen_media' | 'chrome_media_pause' |
+    'chrome_new_tab' | 'chrome_close_tab' | 'chrome_refresh' | 'chrome_fullscreen_media' | 'chrome_fullscreen_browser' | 'chrome_media_pause' |
     // Chrome CDP advanced
     'chrome_scroll_down' | 'chrome_scroll_up' | 'chrome_click_link' | 'chrome_find_text' |
     // Profile system
-    'activate_profile' | 'tile_windows';
+    'activate_profile' | 'tile_windows' |
+    // Context commands
+    'repeat_last' | 'close_last_opened' | 'cancel_last' |
+    // Full disk search
+    'full_disk_search';
   url?: string;
   alias?: string;
   duration?: number; // for screen recording
@@ -30,6 +34,7 @@ export interface CommandRequest {
   text?: string; // for chrome_find_text, chrome_click_link
   profileName?: string; // for activate_profile
   layout?: 'split' | 'quad' | 'triple'; // for tile_windows
+  appName?: string; // for full_disk_search
 }
 
 export interface ApiResponse {
@@ -38,6 +43,10 @@ export interface ApiResponse {
   details?: Record<string, any>;
   data?: Record<string, any>; // for system information responses
   error?: string;
+  // For confirmation flow
+  needsConfirmation?: boolean;
+  confirmationAction?: string;
+  confirmationData?: Record<string, any>;
 }
 
 export interface HealthResponse {

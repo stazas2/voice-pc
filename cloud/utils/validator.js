@@ -21,6 +21,7 @@ class Validator {
         // Разрешенные команды (whitelist)
         this.allowedCommands = [
             'say_ok',
+            'unknown_command',
             'open_notepad',
             'open_chrome',
             'shutdown_now',
@@ -72,7 +73,11 @@ class Validator {
             'chrome_find_text',
             // Profile system
             'activate_profile',
-            'tile_windows'
+            'tile_windows',
+            // Context commands
+            'repeat_last',
+            'close_last_opened',
+            'cancel_last'
         ];
     }
     

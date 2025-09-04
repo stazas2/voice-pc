@@ -1,4 +1,5 @@
 import { exec } from 'child_process';
+import { logger } from './logger';
 
 export interface TrayManager {
   show(): Promise<void>;
@@ -11,7 +12,7 @@ export class WindowsTrayManager implements TrayManager {
   private currentStatus: 'online' | 'offline' | 'busy' = 'offline';
 
   async show(): Promise<void> {
-    console.log('Voice PC запущен с UX улучшениями');
+    logger.info('Voice PC запущен с UX улучшениями');
   }
 
   updateStatus(status: 'online' | 'offline' | 'busy'): void {
@@ -23,7 +24,7 @@ export class WindowsTrayManager implements TrayManager {
       busy: '🟡 Voice PC: Busy'
     };
 
-    console.log(statusMessages[status]);
+    logger.info(statusMessages[status]);
   }
 
   notify(message: string, type: 'success' | 'error' | 'info' = 'info'): void {
@@ -38,12 +39,12 @@ export class WindowsTrayManager implements TrayManager {
       const command = `powershell -Command "[System.Reflection.Assembly]::LoadWithPartialName('System.Windows.Forms'); [System.Windows.Forms.MessageBox]::Show('${message.replace(/'/g, "''")}', 'Voice PC ${icons[type]}', 'OK', '${type === 'error' ? 'Error' : 'Information'}')" | Out-Null`;
       exec(command);
     } catch (error) {
-      console.log(`[${type.toUpperCase()}] ${message}`);
+      logger.info(`[${type.toUpperCase()}] ${message}`);
     }
   }
 
   close(): void {
-    console.log('Voice PC закрывается...');
+    logger.info('Voice PC закрывается...');
   }
 }
 
