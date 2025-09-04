@@ -40,6 +40,14 @@ export interface CommandRequest {
   movieTitle?: string; // for find_movie
   movieYear?: number; // for find_movie
   movieType?: 'movie' | 'series'; // for find_movie
+  season?: number; // for find_movie (series seasons)
+  episode?: number; // for find_movie (series episodes)
+  genre?: string; // for find_movie (filtered search)
+  country?: string; // for find_movie (filtered search)
+  ratingMin?: number; // for find_movie (filtered search)
+  ratingMax?: number; // for find_movie (filtered search)
+  yearMin?: number; // for find_movie (filtered search)
+  yearMax?: number; // for find_movie (filtered search)
 }
 
 export interface ApiResponse {

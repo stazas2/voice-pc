@@ -815,17 +815,37 @@ export class WindowsCommands {
           };
           
         case 'find_movie':
-          if (!request.movieTitle) {
-            return { ok: false, error: 'Movie title is required for find_movie command' };
+          // Для фильтрованного поиска title может быть пустым
+          if (!request.movieTitle && !request.genre && !request.country && !request.ratingMin && !request.ratingMax && !request.yearMin && !request.yearMax) {
+            return { ok: false, error: 'Movie title or search filters are required for find_movie command' };
           }
           
           try {
             const { findKinopoiskPlayerUrl } = await import('./kinopoisk-adapter');
+            
+            // Определяем intent на основе параметров
+            let intent: 'find_movie' | 'find_season' | 'find_filtered' = 'find_movie';
+            if (request.season || request.episode) {
+              intent = 'find_season';
+            } else if (request.genre || request.country || request.ratingMin || request.ratingMax || request.yearMin || request.yearMax) {
+              intent = 'find_filtered';
+            }
+            
             const nluResult = {
-              intent: 'find_movie' as const,
-              title: request.movieTitle,
+              intent,
+              title: request.movieTitle || "",
               year: request.movieYear || null,
-              type: request.movieType || null
+              type: request.movieType || null,
+              season: request.season,
+              episode: request.episode,
+              filters: (intent === 'find_filtered') ? {
+                genre: request.genre,
+                country: request.country,
+                ratingMin: request.ratingMin,
+                ratingMax: request.ratingMax,
+                yearMin: request.yearMin,
+                yearMax: request.yearMax
+              } : undefined
             };
             
             const movieResult = await findKinopoiskPlayerUrl(nluResult);

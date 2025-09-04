@@ -41,9 +41,17 @@ export const commandSchema = z.object({
   profileName: z.string().min(1).optional(), // for activate_profile
   layout: z.enum(['split', 'quad', 'triple']).optional(), // for tile_windows
   appName: z.string().min(1).optional(), // for full_disk_search
-  movieTitle: z.string().min(1).optional(), // for find_movie
+  movieTitle: z.string().optional(), // for find_movie (can be empty for filtered search)
   movieYear: z.number().min(1900).max(2030).optional(), // for find_movie
-  movieType: z.enum(['movie', 'series']).optional() // for find_movie
+  movieType: z.enum(['movie', 'series']).optional(), // for find_movie
+  season: z.number().min(1).max(50).optional(), // for find_movie (series seasons)
+  episode: z.number().min(1).max(100).optional(), // for find_movie (series episodes)
+  genre: z.string().min(1).optional(), // for find_movie (filtered search)
+  country: z.string().min(1).optional(), // for find_movie (filtered search)
+  ratingMin: z.number().min(0).max(10).optional(), // for find_movie (filtered search)
+  ratingMax: z.number().min(0).max(10).optional(), // for find_movie (filtered search)
+  yearMin: z.number().min(1900).max(2030).optional(), // for find_movie (filtered search)
+  yearMax: z.number().min(1900).max(2030).optional() // for find_movie (filtered search)
 }).strict();
 
 export const validateCommand = (data: unknown) => {

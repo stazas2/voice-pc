@@ -74,7 +74,8 @@
       "Read(/C:\\Users\\malys\\Desktop\\Alisa\\voice-pc/**)",
       "Read(/C:\\Users\\malys\\Desktop\\Alisa\\voice-pc\\cloud\\parsers/**)",
       "Read(/C:\\Users\\malys\\Desktop\\Alisa\\voice-pc\\src/**)",
-      "Read(/C:\\Users\\malys\\Desktop\\Alisa\\voice-pc\\src/**)"
+      "Read(/C:\\Users\\malys\\Desktop\\Alisa\\voice-pc\\src/**)",
+      "WebFetch(domain:api.kinopoisk.dev)"
     ],
     "deny": [],
     "ask": []

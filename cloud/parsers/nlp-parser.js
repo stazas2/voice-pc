@@ -80,7 +80,16 @@ class NLPParser {
                 /^(?:хочу\s+)?(?:сериал)\s+(.+?)$/i,
                 /^(?:поиск\s+фильма)\s+(.+?)$/i,
                 /^(?:найди|найти)\s+(.+?)\s+(?:фильм|кино)$/i,
-                /^(?:включи|запусти)\s+(.+?)(?:\s+(?:девяносто|две тысячи|двухтысячный)\s*\w*)?(?:\s+год[а-я]*)?$/i
+                /^(?:включи|запусти)\s+(.+?)(?:\s+(?:девяносто|две тысячи|двухтысячный)\s*\w*)?(?:\s+год[а-я]*)?$/i,
+                
+                // Сезоны и эпизоды
+                /^(?:включи|открой|запусти)\s+(?:сериал\s+)?(.+?)\s+(\d+|первый|второй|третий|четвёртый|пятый|шестой|седьмой|восьмой|девятый|десятый)\s+сезон(?:\s+(\d+|первую|вторую|третью|четвёртую|пятую|шестую|седьмую|восьмую|девятую|десятую)\s+(?:серию|эпизод|серия))?$/i,
+                /^(?:включи|открой|запусти)\s+(\d+|первый|второй|третий|четвёртый|пятый|шестой|седьмой|восьмой|девятый|десятый)\s+сезон\s+(?:сериал\s+)?(.+?)$/i,
+                
+                // Фильтрованный поиск
+                /^(?:подбери|посоветуй|что\s+посмотреть)\s+(?:хорош(?:ий|ее|ую)|отличн(?:ый|ое|ую)|топов(?:ый|ое|ую))?\s*(.+?)$/i,
+                /^(?:найди|покажи)\s+(?:хорош(?:ий|ее|ую)|отличн(?:ый|ое|ую)|топов(?:ый|ое|ую))?\s*(.+?)$/i,
+                /^(?:хочу)\s+(?:хорош(?:ий|ее|ую)|отличн(?:ый|ое|ую)|топов(?:ый|ое|ую))?\s*(.+?)$/i
             ],
 
             // Открытие сайтов  
@@ -321,6 +330,91 @@ class NLPParser {
      */
     processMovieIntent(movieTitle, fullText) {
         if (!movieTitle) return null;
+
+        // Словарь числительных
+        const numberWords = {
+            'первый': 1, 'первую': 1,
+            'второй': 2, 'вторую': 2,
+            'третий': 3, 'третью': 3,
+            'четвёртый': 4, 'четвёртую': 4,
+            'пятый': 5, 'пятую': 5,
+            'шестой': 6, 'шестую': 6,
+            'седьмой': 7, 'седьмую': 7,
+            'восьмой': 8, 'восьмую': 8,
+            'девятый': 9, 'девятую': 9,
+            'десятый': 10, 'десятую': 10
+        };
+
+        // Проверяем на сезоны и эпизоды
+        const seasonMatch = fullText.match(/(?:включи|открой|запусти)\s+(?:сериал\s+)?(.+?)\s+(\d+|первый|второй|третий|четвёртый|пятый|шестой|седьмой|восьмой|девятый|десятый)\s+сезон(?:\s+(\d+|первую|вторую|третью|четвёртую|пятую|шестую|седьмую|восьмую|девятую|десятую)\s+(?:серию|эпизод|серия))?/i);
+        
+        if (seasonMatch) {
+            const title = seasonMatch[1].trim();
+            const seasonText = seasonMatch[2];
+            const episodeText = seasonMatch[3];
+            
+            const season = isNaN(parseInt(seasonText)) ? numberWords[seasonText.toLowerCase()] : parseInt(seasonText);
+            const episode = episodeText ? (isNaN(parseInt(episodeText)) ? numberWords[episodeText.toLowerCase()] : parseInt(episodeText)) : null;
+            
+            const command = {
+                command: 'find_movie',
+                movieTitle: title,
+                movieType: 'series'
+            };
+            
+            if (season) command.season = season;
+            if (episode) command.episode = episode;
+            
+            return command;
+        }
+
+        // Проверяем на фильтрованный поиск
+        const filterWords = ['подбери', 'посоветуй', 'что посмотреть', 'хочу'];
+        const isFiltered = filterWords.some(word => fullText.toLowerCase().includes(word));
+        
+        if (isFiltered) {
+            // Определяем жанр
+            const genreMap = {
+                'боевик': 'боевик',
+                'комедию': 'комедия',
+                'комедия': 'комедия', 
+                'драму': 'драма',
+                'драма': 'драма',
+                'ужастик': 'ужасы',
+                'ужасы': 'ужасы',
+                'триллер': 'триллер',
+                'фантастику': 'фантастика',
+                'фантастика': 'фантастика',
+                'мелодраму': 'мелодрама',
+                'мелодрама': 'мелодрама',
+                'детектив': 'детектив',
+                'мультфильм': 'мультфильм'
+            };
+            
+            let genre = null;
+            for (const [key, value] of Object.entries(genreMap)) {
+                if (movieTitle.toLowerCase().includes(key)) {
+                    genre = value;
+                    break;
+                }
+            }
+            
+            // Определяем рейтинг
+            let ratingMin = null;
+            if (fullText.includes('хорош')) ratingMin = 7;
+            if (fullText.includes('отличн')) ratingMin = 8;
+            if (fullText.includes('топов')) ratingMin = 8.5;
+            
+            const command = {
+                command: 'find_movie',
+                movieTitle: ''
+            };
+            
+            if (genre) command.genre = genre;
+            if (ratingMin) command.ratingMin = ratingMin;
+            
+            return command;
+        }
 
         // Нормализуем название фильма
         let cleanTitle = movieTitle.trim();

@@ -339,6 +339,33 @@ const COMMAND_MAPPINGS = {
   'найди сериал': { command: 'find_movie' },
   'включи сериал': { command: 'find_movie' },
   'хочу сериал': { command: 'find_movie' },
+  
+  // Поиск сезонов и эпизодов
+  'включи сезон': { command: 'find_movie' },
+  'открой сезон': { command: 'find_movie' },
+  'включи серию': { command: 'find_movie' },
+  'открой серию': { command: 'find_movie' },
+  'посмотреть сезон': { command: 'find_movie' },
+  'запусти сезон': { command: 'find_movie' },
+  
+  // Фильтрованный поиск
+  'подбери фильм': { command: 'find_movie' },
+  'подбери кино': { command: 'find_movie' },
+  'подбери сериал': { command: 'find_movie' },
+  'что посмотреть': { command: 'find_movie' },
+  'посоветуй фильм': { command: 'find_movie' },
+  'посоветуй кино': { command: 'find_movie' },
+  'найди боевик': { command: 'find_movie' },
+  'найди комедию': { command: 'find_movie' },
+  'найди ужастик': { command: 'find_movie' },
+  'найди драму': { command: 'find_movie' },
+  'найди мелодраму': { command: 'find_movie' },
+  'найди триллер': { command: 'find_movie' },
+  'найди фантастику': { command: 'find_movie' },
+  'найди мультфильм': { command: 'find_movie' },
+  'хороший фильм': { command: 'find_movie' },
+  'отличное кино': { command: 'find_movie' },
+  'топовый фильм': { command: 'find_movie' },
 
   // Fallback команды
   'тест': { command: 'say_ok' },

@@ -7,13 +7,13 @@ const { saveCommandToContext } = require('./context-memory');
 function parseUserCommand(userText, sessionId = null) {
   const text = userText.toLowerCase().trim();
   
-  // Проверка на пустую команду
-  if (!text || text.length === 0) {
-    return { command: 'unknown_command', error: 'Empty command' };
+  // Сначала проверяем статичные маппинги (включая пустую строку)
+  if (COMMAND_MAPPINGS.hasOwnProperty(text)) {
+    return COMMAND_MAPPINGS[text];
   }
   
-  // Проверка на команду из одних пробелов/символов
-  if (text.replace(/\s/g, '').length === 0) {
+  // Проверка на команду из одних пробелов/символов (кроме пустой, которая уже обработана)
+  if (text.length > 0 && text.replace(/\s/g, '').length === 0) {
     return { command: 'unknown_command', error: 'Empty command content' };
   }
   
@@ -21,11 +21,6 @@ function parseUserCommand(userText, sessionId = null) {
   const smartResult = smartParse(text, sessionId);
   if (smartResult) {
     return smartResult;
-  }
-  
-  // Fallback на статичные маппинги
-  if (COMMAND_MAPPINGS[text]) {
-    return COMMAND_MAPPINGS[text];
   }
   
   // 🧠 Попробуем NLP парсер для естественного языка
