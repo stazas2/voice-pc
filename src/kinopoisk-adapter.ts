@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch, { Response } from "node-fetch";
 import { logger } from './logger';
 
 export type NluResult = {
@@ -54,7 +54,9 @@ type MovieSearchResult = {
 };
 
 const KP_TOKEN = process.env.KP_TOKEN || "KFSEQJK-D4XMD8Q-Q41EGEZ-A0QEK63";
-const REQUEST_TIMEOUT = 5000;
+const REQUEST_TIMEOUT = 15000;
+const MAX_RETRIES = 3;
+const RETRY_DELAY_BASE = 1000;
 
 // Маппинг русских названий жанров на названия Kinopoisk API
 const GENRE_MAPPING: Record<string, string> = {
@@ -82,6 +84,38 @@ const GENRE_MAPPING: Record<string, string> = {
   'аниме': 'аниме',
   'короткометражка': 'короткометражка'
 };
+
+async function fetchWithRetry(url: string, options: any, maxRetries = MAX_RETRIES): Promise<Response> {
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+      
+      const response = await fetch(url, {
+        ...options,
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      const isLastAttempt = attempt === maxRetries;
+      const isAbortError = error instanceof Error && error.name === 'AbortError';
+      const isNetworkError = error instanceof Error && (error.message.includes('network') || error.message.includes('timeout'));
+      
+      if (isLastAttempt || (!isAbortError && !isNetworkError)) {
+        throw error;
+      }
+      
+      const delay = RETRY_DELAY_BASE * Math.pow(2, attempt - 1);
+      logger.warn(`Kinopoisk API request failed (attempt ${attempt}/${maxRetries}), retrying in ${delay}ms:`, error instanceof Error ? error.message : 'Unknown error');
+      
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+  }
+  
+  throw new Error('All retry attempts failed');
+}
 
 function normalizeGenre(genre: string): string {
   const normalized = genre.toLowerCase().trim();
@@ -137,6 +171,8 @@ function pickBest(nlu: NluResult, docs: KinopoiskMovie[]): KinopoiskMovie | null
 }
 
 export async function findKinopoiskPlayerUrl(nlu: NluResult): Promise<MovieSearchResult> {
+  logger.info('findKinopoiskPlayerUrl called with nlu:', nlu);
+  
   if (nlu.intent === "find_season") {
     return await findSeasonEpisode(nlu);
   }
@@ -157,18 +193,12 @@ export async function findKinopoiskPlayerUrl(nlu: NluResult): Promise<MovieSearc
 
     const searchUrl = `https://api.kinopoisk.dev/v1.4/movie/search?${params.toString()}`;
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-    const response = await fetch(searchUrl, {
+    const response = await fetchWithRetry(searchUrl, {
       headers: {
         'X-API-KEY': KP_TOKEN,
         'Accept': 'application/json'
-      },
-      signal: controller.signal
+      }
     });
-
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       logger.error(`Kinopoisk API error: ${response.status} ${response.statusText}`);
@@ -234,6 +264,18 @@ export async function findKinopoiskPlayerUrl(nlu: NluResult): Promise<MovieSearc
   } catch (error) {
     logger.error('Kinopoisk search error', error);
     const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+    
+    // Fallback: генерируем URL без проверки API если это таймаут
+    if (error instanceof Error && error.name === 'AbortError') {
+      logger.warn(`API timeout, trying fallback for movie: ${nlu.title || 'unknown'}`);
+      const fallbackUrl = `https://www.kinopoisk.vip/`;
+      
+      return {
+        speak: `API недоступен, открываю КиноПоиск для поиска "${nlu.title || 'фильма'}"`,
+        url: fallbackUrl
+      };
+    }
+    
     return { 
       speak: `Ошибка при поиске фильма: ${errorMsg}`, 
       url: null 
@@ -254,18 +296,12 @@ async function findSeasonEpisode(nlu: NluResult): Promise<MovieSearchResult> {
 
     const searchUrl = `https://api.kinopoisk.dev/v1.4/movie/search?${params.toString()}`;
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-    const response = await fetch(searchUrl, {
+    const response = await fetchWithRetry(searchUrl, {
       headers: {
         'X-API-KEY': KP_TOKEN,
         'Accept': 'application/json'
-      },
-      signal: controller.signal
+      }
     });
-
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       logger.error(`Kinopoisk API error: ${response.status} ${response.statusText}`);
@@ -382,18 +418,12 @@ async function findMovieWithFilters(nlu: NluResult): Promise<MovieSearchResult> 
 
     const searchUrl = `https://api.kinopoisk.dev/v1.4/movie?${params.toString()}`;
     
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
-
-    const response = await fetch(searchUrl, {
+    const response = await fetchWithRetry(searchUrl, {
       headers: {
         'X-API-KEY': KP_TOKEN,
         'Accept': 'application/json'
-      },
-      signal: controller.signal
+      }
     });
-
-    clearTimeout(timeoutId);
 
     if (!response.ok) {
       logger.error(`Kinopoisk API error: ${response.status} ${response.statusText}`);
