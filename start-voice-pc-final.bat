@@ -24,7 +24,7 @@ call npm run build -s
 if errorlevel 1 (color 0C && echo BUILD FAILED! && pause && exit /b 1)
 
 echo [2/3] Starting local server with UX improvements...
-start "Voice PC Server" cmd /k "cd /d \"%~dp0\" & set PORT=3000 & node dist/server.js"
+start "Voice PC Server" cmd /k "set PORT=3000 && npm start"
 timeout /t 3 /nobreak >nul
 
 echo [3/3] Starting permanent Cloudflare Tunnel (hidden)...
