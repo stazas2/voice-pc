@@ -117,12 +117,10 @@ export class Logger {
       message,
       data
     };
-    
-    // Выводим в консоль только в режиме разработки
-    if (process.env.NODE_ENV !== 'production') {
-      console.log(`[INFO] ${entry.timestamp}: ${message}`, data ? JSON.stringify(data) : '');
-    }
-    
+
+    // Не выводим в консоль, чтобы не портить JSON-ответы для облачной функции
+    // Все логи пишутся только в файл
+
     try {
       fs.appendFileSync(LOG_FILE, JSON.stringify(entry) + '\n', 'utf8');
     } catch (error) {
@@ -137,9 +135,9 @@ export class Logger {
       message,
       data: data?.message || data
     };
-    
-    console.warn(`[WARN] ${entry.timestamp}: ${message}`, data);
-    
+
+    // Не выводим в консоль, чтобы не портить JSON-ответы для облачной функции
+
     try {
       fs.appendFileSync(LOG_FILE, JSON.stringify(entry) + '\n', 'utf8');
     } catch (writeError) {
@@ -154,9 +152,9 @@ export class Logger {
       message,
       error: error?.message || error
     };
-    
-    console.error(`[ERROR] ${entry.timestamp}: ${message}`, error);
-    
+
+    // Не выводим в консоль, чтобы не портить JSON-ответы для облачной функции
+
     try {
       fs.appendFileSync(LOG_FILE, JSON.stringify(entry) + '\n', 'utf8');
     } catch (writeError) {
