@@ -159,3 +159,7 @@ MIT License - используй свободно!
 ---
 
 **🎯 Система готова к работе! Управляй ПК голосом уже сейчас!** 🚀
+## Startup shortcut (Windows)
+
+- Run `powershell -ExecutionPolicy Bypass -File tools\install-startup-shortcut.ps1` to create a Startup shortcut that launches `start-voice-pc-final.bat` minimized after login.
+- Run `powershell -ExecutionPolicy Bypass -File tools\install-startup-shortcut.ps1 -Remove` when you want to remove the Startup shortcut.
