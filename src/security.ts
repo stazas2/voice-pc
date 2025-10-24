@@ -128,6 +128,12 @@ export class SecurityManager {
       return;
     }
 
+    // Only enforce HMAC on POST requests (command endpoint)
+    if (req.method !== 'POST') {
+      next();
+      return;
+    }
+
     const signature = req.headers['x-signature'] as string;
     const timestamp = req.headers['x-timestamp'] as string;
     const requestId = req.headers['x-request-id'] as string;
