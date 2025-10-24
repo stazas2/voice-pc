@@ -163,3 +163,5 @@ MIT License - используй свободно!
 
 - Run `powershell -ExecutionPolicy Bypass -File tools\install-startup-shortcut.ps1` to create a Startup shortcut that launches `start-voice-pc-final.bat` minimized after login.
 - Run `powershell -ExecutionPolicy Bypass -File tools\install-startup-shortcut.ps1 -Remove` when you want to remove the Startup shortcut.
+
+**Render/облако:** если вебхуку недоступно формирование HMAC-заголовков, выставьте `DISABLE_HMAC=true` в переменных окружения — тогда `/command` будет защищён только `X-ALICE-TOKEN`.

@@ -19,6 +19,7 @@ logger.info('🔍 dotenv result:', result.error ? result.error.message : 'succes
 const app = express();
 const PORT = process.env.PORT ? parseInt(process.env.PORT) : 3000;
 const ALICE_TOKEN = process.env.ALICE_TOKEN;
+const DISABLE_HMAC = process.env.DISABLE_HMAC === 'true';
 
 if (!ALICE_TOKEN || ALICE_TOKEN === 'change_me' || ALICE_TOKEN.length < 10) {
   logger.error('ALICE_TOKEN is not set or insecure. Please set a strong token in .env file.');
@@ -29,7 +30,11 @@ if (!ALICE_TOKEN || ALICE_TOKEN === 'change_me' || ALICE_TOKEN.length < 10) {
 const serverStartTime = Date.now();
 
 // Create security manager
-const security = createSecurityManager(ALICE_TOKEN);
+const security = createSecurityManager(ALICE_TOKEN, { disableHmac: DISABLE_HMAC });
+
+if (DISABLE_HMAC) {
+  logger.warn('HMAC verification is disabled via DISABLE_HMAC=true. Only token auth protects /command.');
+}
 
 // Middleware (must come before routes)
 app.use(cors({

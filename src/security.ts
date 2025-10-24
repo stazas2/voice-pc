@@ -8,11 +8,18 @@ const MAX_REQUESTS_PER_WINDOW = 50; // Increased for dashboard usage
 const TIMESTAMP_TOLERANCE = 5 * 60 * 1000; // 5 minutes tolerance for timestamp
 const IDEMPOTENCY_CACHE_TTL = 5 * 60 * 1000; // 5 minutes TTL for idempotency cache
 
+interface SecurityOptions {
+  disableHmac?: boolean;
+}
+
 export class SecurityManager {
   private rateLimits: Map<string, RateLimitEntry> = new Map();
   private idempotencyCache: Map<string, { timestamp: number; response: any }> = new Map();
 
-  constructor(private aliceToken: string) {
+  constructor(
+    private aliceToken: string,
+    private options: SecurityOptions = {}
+  ) {
     // Clean up rate limits and idempotency cache every 5 minutes
     setInterval(() => {
       this.cleanupRateLimits();
@@ -128,6 +135,11 @@ export class SecurityManager {
       return;
     }
 
+    if (this.options.disableHmac) {
+      next();
+      return;
+    }
+
     // Only enforce HMAC on POST requests (command endpoint)
     if (req.method !== 'POST') {
       next();
@@ -236,4 +248,5 @@ export class SecurityManager {
   };
 }
 
-export const createSecurityManager = (token: string) => new SecurityManager(token);
+export const createSecurityManager = (token: string, options?: SecurityOptions) =>
+  new SecurityManager(token, options);
